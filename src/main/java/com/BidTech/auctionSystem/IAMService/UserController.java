@@ -1,7 +1,6 @@
-package IAMService;
+package com.BidTech.auctionSystem.IAMService;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;

@@ -1,4 +1,4 @@
-package com.BidTech.auctionSystem;
+/*package com.BidTech.auctionSystem;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -9,6 +9,19 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 @ComponentScan(basePackages = "IAMService")
 @EnableJpaRepositories(basePackages = "IAMService")
 @org.springframework.boot.persistence.autoconfigure.EntityScan("IAMService")
+public class AuctionSystemApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(AuctionSystemApplication.class, args);
+	}
+
+}*/
+package com.BidTech.auctionSystem;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
 public class AuctionSystemApplication {
 
 	public static void main(String[] args) {

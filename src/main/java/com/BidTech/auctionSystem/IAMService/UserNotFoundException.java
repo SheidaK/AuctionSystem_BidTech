@@ -1,4 +1,4 @@
-package IAMService;
+package com.BidTech.auctionSystem.IAMService;
 
 public class UserNotFoundException extends RuntimeException {
 
