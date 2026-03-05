@@ -16,13 +16,13 @@ class LoadAuctionDatabase {
 
     @Bean
     CommandLineRunner initAuctionDatabase(AuctionRepository repository) {
-
         return args -> {
-            repository.save(new Auction(1L, 50.0,
-                    LocalDateTime.now().plusHours(1)));
 
-            repository.save(new Auction(2L, 100.0,
-                    LocalDateTime.now().plusHours(2)));
+            repository.deleteAll();
+
+            repository.save(new Auction(1L, 50.0));
+            repository.save(new Auction(2L, 100.0));
+
         };
     }
 }

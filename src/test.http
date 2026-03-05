@@ -1,119 +1,22 @@
-#############################################
-# AUCTION SYSTEM FULL INTEGRATION TEST
-# IAM + AUCTION SERVICE
-#############################################
-
-
-#############################################
-# 1. CREATE USERS (IAM SERVICE)
-#############################################
-
-### Create Seller
-POST http://localhost:8080/users
-Content-Type: application/json
-
-{
-  "firstName": "Vrinda",
-  "lastName": "Ashwar",
-  "userName": "vrindaSeller",
-  "email": "vrinda@email.com",
-  "password": "test123",
-  "role": "seller"
-}
-
-###
-
-### Create Buyer
-POST http://localhost:8080/users
-Content-Type: application/json
-
-{
-  "firstName": "Test",
-  "lastName": "Buyer",
-  "userName": "buyer001",
-  "email": "buyer@email.com",
-  "password": "test123",
-  "role": "buyer"
-}
-
-###
-
-### Verify Users Exist
-GET http://localhost:8080/users
-
-
-
-#############################################
-# 2. CREATE AUCTION
-# (requires createAuction endpoint)
-#############################################
-
 ### Create Auction
-POST http://localhost:8080/auction/create
-Content-Type: application/json
-
-{
-  "title": "Vintage Rolex Watch",
-  "description": "1970s collectible watch",
-  "startingPrice": 100,
-  "sellerId": 1
-}
+POST http://localhost:8080/auction/create?itemId=1&startingPrice=100
 
 
-
-#############################################
-# 3. PLACE BIDS
-#############################################
-
-### First Bid
+### Place Bid
 POST http://localhost:8080/auction/1/bid?userId=2&amount=150
 
-###
-
-### Second Bid
-POST http://localhost:8080/auction/1/bid?userId=2&amount=200
-
-
-
-#############################################
-# 4. CHECK HIGHEST BID
-#############################################
 
 ### Get Highest Bid
 GET http://localhost:8080/auction/1/highest
 
 
-
-#############################################
-# 5. VIEW BID HISTORY
-#############################################
-
-### Bid History
+### Get Bid History
 GET http://localhost:8080/auction/1/history
 
 
-
-#############################################
-# 6. CHECK REMAINING TIME
-#############################################
-
-### Remaining Time
+### Get Remaining Time
 GET http://localhost:8080/auction/1/remaining
 
 
-
-#############################################
-# 7. END AUCTION
-#############################################
-
 ### End Auction
 POST http://localhost:8080/auction/1/end
-
-
-
-#############################################
-# 8. VERIFY FINAL AUCTION STATE
-#############################################
-
-### Highest Bid After Auction End
-GET http://localhost:8080/auction/1/highest

@@ -41,10 +41,10 @@ public class Auction {
     public Auction() {
     }
 
-    public Auction(Long itemId, double startingPrice, LocalDateTime endTime) {
+    public Auction(Long itemId, double startingPrice) {
         this.itemId = itemId;
         this.highestBid = startingPrice;
-        this.endTime = endTime;
+        this.endTime = LocalDateTime.now().plusHours(1); // auction lasts 1 hour
         this.active = true;
     }
 
