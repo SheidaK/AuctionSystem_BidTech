@@ -1,4 +1,4 @@
-package IAMService;
+package com.BidTech.auctionSystem.IAMService;
 
 import jakarta.persistence.Id;
 

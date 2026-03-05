@@ -1,4 +1,4 @@
-package IAMService;
+package com.BidTech.auctionSystem.IAMService;
 import java.util.Objects;
 
 import jakarta.persistence.Entity;
