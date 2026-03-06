@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Product Service - Business Logic Layer
@@ -14,7 +13,6 @@ import org.springframework.transaction.annotation.Transactional;
  * 2. Facade Pattern - Provides simplified interface to complex subsystem
  */
 @Service
-@Transactional
 public class ProductService {
     
     private final ProductRepository productRepository;
@@ -44,7 +42,7 @@ public class ProductService {
     /**
      * Get product by ID
      */
-    @Transactional(readOnly = true)
+
     public ProductDTO getProductById(Long id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ProductNotFoundException(id));
@@ -54,7 +52,7 @@ public class ProductService {
     /**
      * Get all products
      */
-    @Transactional(readOnly = true)
+
     public List<ProductDTO> getAllProducts() {
         return productRepository.findAll().stream()
                 .map(ProductDTO::new)
@@ -64,7 +62,7 @@ public class ProductService {
     /**
      * Get all active products
      */
-    @Transactional(readOnly = true)
+
     public List<ProductDTO> getActiveProducts() {
         return productRepository.findAllActiveProducts().stream()
                 .map(ProductDTO::new)
@@ -74,7 +72,7 @@ public class ProductService {
     /**
      * Get products by seller
      */
-    @Transactional(readOnly = true)
+
     public List<ProductDTO> getProductsBySeller(Long sellerId) {
         return productRepository.findBySellerId(sellerId).stream()
                 .map(ProductDTO::new)
@@ -84,7 +82,7 @@ public class ProductService {
     /**
      * Get products by category
      */
-    @Transactional(readOnly = true)
+
     public List<ProductDTO> getProductsByCategory(String category) {
         return productRepository.findByCategory(category).stream()
                 .map(ProductDTO::new)
@@ -94,7 +92,7 @@ public class ProductService {
     /**
      * Search products by keyword
      */
-    @Transactional(readOnly = true)
+
     public List<ProductDTO> searchProducts(String keyword) {
         return productRepository.searchByNameOrDescription(keyword).stream()
                 .map(ProductDTO::new)
@@ -104,7 +102,7 @@ public class ProductService {
     /**
      * Get products by price range
      */
-    @Transactional(readOnly = true)
+
     public List<ProductDTO> getProductsByPriceRange(BigDecimal minPrice, BigDecimal maxPrice) {
         productValidator.validatePriceRange(minPrice, maxPrice);
         return productRepository.findByPriceRange(minPrice, maxPrice).stream()
