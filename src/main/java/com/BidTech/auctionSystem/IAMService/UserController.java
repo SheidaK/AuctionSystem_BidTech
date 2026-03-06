@@ -41,8 +41,7 @@ public class UserController {
 		        user.setFirstName(newUser.getFirstName());
 		        user.setLastName(newUser.getLastName());
 		        user.setEmail(newUser.getEmail());
-		        user.setUsername(newUser.getUsername());
-		        user.setRole(newUser.getRole());
+				user.setUserName(newUser.getUserName());		        user.setRole(newUser.getRole());
 		        return repository.save(user);
 		      })
 		      .orElseGet(() -> {

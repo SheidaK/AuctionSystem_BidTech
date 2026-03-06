@@ -1,13 +1,18 @@
 package com.BidTech.auctionSystem.IAMService;
 
-import jakarta.persistence.Id;
-
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 @Entity
+@Table(name="Addresses")
 public class Address {
+
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long address_id;
 
 	private String streetNumber;
 	private String streetName;
@@ -15,59 +20,62 @@ public class Address {
 	private String postalCode;
 	private String country;
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long address_id;
+	public Address() {}
 
-	// REQUIRED by Hibernate
-	public Address() {
-	}
-
-	public Address(String streetNumber2, String streetName2, String city2, String postalCode2, String country2) {
-		this.streetNumber = streetNumber2;
-		this.streetName = streetName2;
-		this.city = city2;
-		this.postalCode = postalCode2;
-		this.country = country2;
-	}
-
-	public void setStreeNumber(String streetNumber) {
+	public Address(String streetNumber, String streetName, String city,
+				   String postalCode, String country) {
 		this.streetNumber = streetNumber;
-	}
-
-	public void setStreeName(String streetName) {
 		this.streetName = streetName;
-	}
-
-	public void setCity(String city) {
 		this.city = city;
-	}
-
-	public void setPostalCode(String postalCode) {
 		this.postalCode = postalCode;
-	}
-
-	public void setCountry(String country) {
 		this.country = country;
 	}
 
-	public String getStreeNumber() {
+	public Long getAddress_id() {
+		return address_id;
+	}
+
+	public void setAddress_id(Long address_id) {
+		this.address_id = address_id;
+	}
+
+	public String getStreetNumber() {
 		return streetNumber;
 	}
 
-	public String getStreeName() {
+	public void setStreetNumber(String streetNumber) {
+		this.streetNumber = streetNumber;
+	}
+
+	public String getStreetName() {
 		return streetName;
+	}
+
+	public void setStreetName(String streetName) {
+		this.streetName = streetName;
 	}
 
 	public String getCity() {
 		return city;
 	}
 
-	public String getCountry() {
-		return country;
+	public void setCity(String city) {
+		this.city = city;
 	}
 
 	public String getPostalCode() {
 		return postalCode;
+	}
+
+	public void setPostalCode(String postalCode) {
+		this.postalCode = postalCode;
+	}
+
+	public String getCountry() {
+		return country;
+	}
+
+	public void setCountry(String country) {
+		this.country = country;
 	}
 }

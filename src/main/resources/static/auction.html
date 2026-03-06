@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Auction Service</title>
+
+    <style>
+        body {
+            font-family: Arial;
+            margin: 40px;
+        }
+
+        section {
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            margin-top: 10px;
+        }
+    </style>
+
+</head>
+<body>
+
+<h1>Auction Service UI</h1>
+
+<!-- CREATE AUCTION -->
+<section>
+    <h2>Create Auction</h2>
+
+    Item ID:
+    <input id="itemId">
+
+    Starting Price:
+    <input id="startingPrice">
+
+    <br>
+
+    <button onclick="createAuction()">Create Auction</button>
+
+    <p id="createResult"></p>
+</section>
+
+
+<!-- PLACE BID -->
+<section>
+    <h2>Place Bid</h2>
+
+    Auction ID:
+    <input id="bidAuctionId">
+
+    User ID:
+    <input id="userId">
+
+    Amount:
+    <input id="amount">
+
+    <br>
+
+    <button onclick="placeBid()">Place Bid</button>
+
+    <p id="bidResult"></p>
+</section>
+
+
+<!-- GET HIGHEST BID -->
+<section>
+    <h2>Get Highest Bid</h2>
+
+    Auction ID:
+    <input id="highestAuctionId">
+
+    <br>
+
+    <button onclick="getHighest()">Get Highest Bid</button>
+
+    <p id="highestResult"></p>
+</section>
+
+
+<script>
+
+    const baseURL = "http://localhost:8080/auction";
+
+
+    async function createAuction(){
+
+        let itemId = document.getElementById("itemId").value;
+        let price = document.getElementById("startingPrice").value;
+
+        let res = await fetch(`${baseURL}/create?itemId=${itemId}&startingPrice=${price}`, {
+            method: "POST"
+        });
+
+        let data = await res.json();
+
+        document.getElementById("createResult").innerText =
+            "Created Auction ID: " + data.id;
+
+    }
+
+
+    async function placeBid(){
+
+        let auctionId = document.getElementById("bidAuctionId").value;
+        let userId = document.getElementById("userId").value;
+        let amount = document.getElementById("amount").value;
+
+        let res = await fetch(`${baseURL}/${auctionId}/bid?userId=${userId}&amount=${amount}`, {
+            method: "POST"
+        });
+
+        let data = await res.json();
+
+        document.getElementById("bidResult").innerText =
+            "Bid placed successfully"
+
+    }
+
+
+    async function getHighest(){
+
+        let auctionId = document.getElementById("highestAuctionId").value;
+
+        let res = await fetch(`${baseURL}/${auctionId}/highest`);
+
+        let data = await res.text();
+
+        document.getElementById("highestResult").innerText =
+            "Highest bid: $" + data;
+
+    }
+
+</script>
+
+</body>
+</html>

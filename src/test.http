@@ -1,0 +1,22 @@
+### Create Auction
+POST http://localhost:8080/auction/create?itemId=1&startingPrice=100
+
+
+### Place Bid
+POST http://localhost:8080/auction/1/bid?userId=2&amount=150
+
+
+### Get Highest Bid
+GET http://localhost:8080/auction/1/highest
+
+
+### Get Bid History
+GET http://localhost:8080/auction/1/history
+
+
+### Get Remaining Time
+GET http://localhost:8080/auction/1/remaining
+
+
+### End Auction
+POST http://localhost:8080/auction/1/end
