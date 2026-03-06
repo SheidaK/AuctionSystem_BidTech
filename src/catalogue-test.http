@@ -1,0 +1,100 @@
+### Catalogue Service API Tests
+### Base URL: http://localhost:8080/api/catalogue
+
+### Health Check
+GET http://localhost:8080/api/catalogue/health
+
+###
+
+### Get All Products
+GET http://localhost:8080/api/catalogue/products
+
+###
+
+### Get Active Products Only
+GET http://localhost:8080/api/catalogue/products/active
+
+###
+
+### Get Product by ID
+GET http://localhost:8080/api/catalogue/products/1
+
+###
+
+### Search Products by Keyword
+GET http://localhost:8080/api/catalogue/products/search?keyword=laptop
+
+###
+
+### Get Products by Category
+GET http://localhost:8080/api/catalogue/products/category/Electronics
+
+###
+
+### Get Products by Seller ID
+GET http://localhost:8080/api/catalogue/products/seller/1
+
+###
+
+### Get Products by Price Range
+GET http://localhost:8080/api/catalogue/products/price-range?min=100&max=1000
+
+###
+
+### Create New Product
+POST http://localhost:8080/api/catalogue/products
+Content-Type: application/json
+
+{
+  "name": "Test Product",
+  "description": "A test product for demonstration",
+  "category": "Electronics",
+  "startingPrice": 100.00,
+  "reservePrice": 200.00,
+  "sellerId": 1,
+  "endDate": "2026-04-01T12:00:00",
+  "shippingCost": 15.00,
+  "keywords": "test, sample, demo",
+  "condition": "NEW",
+  "quantity": 1,
+  "auctionType": "English Auction"
+}
+
+###
+
+### Update Product
+PUT http://localhost:8080/api/catalogue/products/1
+Content-Type: application/json
+
+{
+  "name": "Updated Product Name",
+  "description": "Updated description",
+  "startingPrice": 850.00
+}
+
+###
+
+### Activate Product
+POST http://localhost:8080/api/catalogue/products/1/activate
+
+###
+
+### Deactivate Product
+POST http://localhost:8080/api/catalogue/products/1/deactivate
+
+###
+
+### Update Product Status (for Auction Service integration)
+PATCH http://localhost:8080/api/catalogue/products/1/status
+Content-Type: application/json
+
+{
+  "status": "IN_AUCTION"
+}
+
+###
+
+### Delete Product
+DELETE http://localhost:8080/api/catalogue/products/6
+
+###
