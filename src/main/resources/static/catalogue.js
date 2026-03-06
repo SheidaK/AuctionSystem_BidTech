@@ -1,5 +1,5 @@
 // API Base URL
-const API_BASE = 'http://localhost:5000/api/catalogue';
+const API_BASE = 'http://localhost:8080/api/catalogue';
 
 // Load products on page load
 document.addEventListener('DOMContentLoaded', () => {
@@ -175,6 +175,10 @@ async function addProduct(event) {
     const form = event.target;
     const formData = new FormData(form);
     
+    // Convert date to proper format
+    const endDateInput = formData.get('endDate');
+    const endDate = new Date(endDateInput);
+    
     const productData = {
         name: formData.get('name'),
         description: formData.get('description'),
@@ -182,13 +186,15 @@ async function addProduct(event) {
         startingPrice: parseFloat(formData.get('startingPrice')),
         reservePrice: parseFloat(formData.get('reservePrice')),
         shippingCost: parseFloat(formData.get('shippingCost')),
-        endDate: new Date(formData.get('endDate')).toISOString(),
+        endDate: endDate.getTime(), // Send as timestamp
         keywords: formData.get('keywords'),
         condition: formData.get('condition'),
         sellerId: 1, // Default seller ID
         quantity: 1,
         auctionType: 'English Auction'
     };
+    
+    console.log('Sending product data:', productData); // Debug log
     
     try {
         const response = await fetch(`${API_BASE}/products`, {
@@ -201,6 +207,7 @@ async function addProduct(event) {
         
         if (!response.ok) {
             const error = await response.json();
+            console.error('Server error:', error); // Debug log
             throw new Error(error.message || 'Failed to add product');
         }
         
