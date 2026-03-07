@@ -155,3 +155,35 @@ GET http://localhost:8080/api/payments/receipt/1
 
 ### Receipt for non-existent payment
 GET http://localhost:8080/api/payments/receipt/999
+##Register a new user
+POST http://localhost:8080/users
+Content-Type: application/json
+
+{
+    "firstName":"Sheida",
+    "lastName": "Khodabakhshian",
+    "userName": "Sheidak",
+    "password": "123",
+    "email":"sheida@gmail.com",
+    "role":"shopper",
+    "streetNumber":"1","streeName":"Finch","city":"Toronto","postalCode": "123MNO","country":"Canada"
+}
+##get information of all users
+GET http://localhost:8080/users
+##get information on a specific user
+GET http://localhost:8080/users/1
+## change password(PUT)
+PUT http://localhost:8080/users/1
+Content-Type: application/json
+
+{
+    "firstName":"Sheida",
+    "lastName": "Khodabakhshian",
+    "userName": "Sheidak",
+    "password": "343",
+    "email":"sheida@gmail.com",
+    "streetNumber":"1","streetName":"Finch","city":"Toronto","postalCode": "123MNO","country":"Canada",
+    "role":"shopper"
+}
+##Delete user
+DELETE http://localhost:8080/users/1
