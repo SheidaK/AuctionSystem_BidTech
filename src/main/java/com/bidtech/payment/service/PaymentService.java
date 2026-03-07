@@ -47,7 +47,7 @@ public class PaymentService {
     }
 
     /**
-     * Winner check (placeholder for now)
+     * Winner check
      */
     private boolean isWinner(Long userId, Long auctionId) {
     	
