@@ -117,4 +117,30 @@ Content-Type: application/json
 ### Delete Product
 DELETE http://localhost:8080/api/catalogue/products/6
 
+### Process payment
+POST http://localhost:8080/api/payments/process?auctionId=1&userId=10&amount=250
+
 ###
+
+### Process another payment
+POST http://localhost:8080/api/payments/process?auctionId=2&userId=5&amount=120
+
+###
+
+### Invalid payment (negative)
+POST http://localhost:8080/api/payments/process?auctionId=3&userId=7&amount=-100
+
+###
+
+### Check payment status
+GET http://localhost:8080/api/payments/status/1719865324532
+
+###
+
+### Receipt for payment id 1
+GET http://localhost:8080/api/payments/receipt/1
+
+###
+
+### Receipt for non-existent payment
+GET http://localhost:8080/api/payments/receipt/999
