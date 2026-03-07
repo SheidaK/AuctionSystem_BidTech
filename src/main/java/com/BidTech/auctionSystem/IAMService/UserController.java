@@ -2,6 +2,7 @@ package com.BidTech.auctionSystem.IAMService;
 
 import java.util.List;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -41,7 +42,14 @@ public class UserController {
 		        user.setFirstName(newUser.getFirstName());
 		        user.setLastName(newUser.getLastName());
 		        user.setEmail(newUser.getEmail());
-				user.setUserName(newUser.getUserName());		        user.setRole(newUser.getRole());
+				user.setUserName(newUser.getUserName());		        
+				user.setRole(newUser.getRole());
+				user.setPassword(newUser.getPassword());
+				user.setStreetNumber(newUser.getStreetNumber());
+				user.setStreetName(newUser.getStreetName());
+				user.setCity(newUser.getCity());
+				user.setPostalCode(newUser.getPostalCode());
+				user.setCountry(newUser.getCountry());
 		        return repository.save(user);
 		      })
 		      .orElseGet(() -> {

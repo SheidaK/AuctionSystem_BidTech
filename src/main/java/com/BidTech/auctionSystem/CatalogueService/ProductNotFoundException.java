@@ -1,4 +1,4 @@
-package CatalogueService;
+package com.BidTech.auctionSystem.CatalogueService;
 
 /**
  * Exception thrown when a product is not found

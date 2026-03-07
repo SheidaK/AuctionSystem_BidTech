@@ -2,6 +2,7 @@ package com.BidTech.auctionSystem.IAMService;
 
 import java.util.Objects;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -26,18 +27,21 @@ public class User {
 	private String email;
 	private String password;
 	private String role;
+	private String streetNumber;
+	private String streetName;
+	private String city;
+	private String postalCode;
+	private String country;
 
-	@JsonIgnore
-	@OneToOne(optional = true)
-	@JoinColumn(name = "address_id", nullable = true)
-	private Address address;
 
-	// REQUIRED by JPA
+	
+
 	public User() {}
 
 	// Constructor
 	public User(String first_name, String last_name, String userName,
-				String email, String password, String role) {
+				String email, String password, String role,String streetNumber, String streetName, String city,
+				   String postalCode, String country) {
 
 		this.first_name = first_name;
 		this.last_name = last_name;
@@ -45,9 +49,15 @@ public class User {
 		this.email = email;
 		this.password = password;
 		this.role = role;
+		//this.address = address;
+		this.streetNumber = streetNumber;
+		this.streetName = streetName;
+		this.city = city;
+		this.postalCode = postalCode;
+		this.country = country;
 	}
 
-	// ===== GETTERS =====
+	// getters
 
 	public Long getId() {
 		return id;
@@ -76,12 +86,33 @@ public class User {
 	public String getRole() {
 		return role;
 	}
-
-	public Address getAddress() {
-		return address;
+	public String getStreetNumber() {
+		return streetNumber;
 	}
 
-	// ===== SETTERS =====
+	
+	public String getStreetName() {
+		return streetName;
+	}
+
+	
+
+	public String getCity() {
+		return city;
+	}
+
+	public String getPostalCode() {
+		return postalCode;
+	}
+
+	public String getCountry() {
+		return country;
+	}
+
+
+	
+
+	// setters
 
 	public void setId(Long id) {
 		this.id = id;
@@ -110,11 +141,24 @@ public class User {
 	public void setRole(String role) {
 		this.role = role;
 	}
-
-	public void setAddress(Address address) {
-		this.address = address;
+	public void setStreetNumber(String streetNumber) {
+		this.streetNumber = streetNumber;
+	}
+	public void setCountry(String country) {
+		this.country = country;
 	}
 
+
+	public void setPostalCode(String postalCode) {
+		this.postalCode = postalCode;
+	}
+
+	public void setCity(String city) {
+		this.city = city;
+	}
+	public void setStreetName(String streetName) {
+		this.streetName = streetName;
+	}
 	// password check
 	public boolean checkPassword(String enteredPassword) {
 		return password != null && password.equals(enteredPassword);

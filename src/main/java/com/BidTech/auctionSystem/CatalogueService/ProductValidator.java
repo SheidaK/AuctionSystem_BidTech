@@ -1,4 +1,4 @@
-package CatalogueService;
+package com.BidTech.auctionSystem.CatalogueService;
 
 import java.math.BigDecimal;
 

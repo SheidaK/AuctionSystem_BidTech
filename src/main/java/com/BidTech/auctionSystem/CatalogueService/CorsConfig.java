@@ -1,4 +1,4 @@
-package CatalogueService;
+package com.BidTech.auctionSystem.CatalogueService;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

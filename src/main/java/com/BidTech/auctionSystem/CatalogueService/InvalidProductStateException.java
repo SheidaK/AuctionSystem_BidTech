@@ -1,4 +1,4 @@
-package CatalogueService;
+package com.BidTech.auctionSystem.CatalogueService;
 
 /**
  * Exception thrown when an operation is attempted on a product in an invalid state

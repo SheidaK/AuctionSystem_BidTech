@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<title>Auction System-Update User Information</title>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+</head>
+<body>
+	<h1>Update User Information</h1>
+	
+	<form id="updateUserForm">
+	
+		<label for="id">User ID:</label>
+		<input type="number" id="id" required><br><br>
+		
+		<label for="firstName">New First Name:</label>
+		<input type="text" id="firstName"><br><br>
+		
+		<label for="lastName">New Last Name:</label>
+		<input type="text" id="lastName"><br><br>
+		
+		<label for="email">New Email:</label>
+		<input type="email" id="email"><br><br>
+		
+		<label for="userName">New Username:</label>
+		<input type="text" id="userName"><br><br>
+		
+		<label for="role">New Role:</label>
+		<input type="text" id="role"><br><br>
+		<label for="streetName">New Street Name:</label>
+		<input type="text" id="streetName" required><br><br>
+				
+		<label for="streetNumber">New Street Number:</label>
+		<input type="text" id="streetNumber" required><br><br>
+				
+		<label for="city">New City:</label>
+		<input type="text" id="city" required><br><br>
+				
+		<label for="postalCode">New Postal Code:</label>
+		<input type="text" id="postalCode" required><br><br>
+				
+		<label for="country">New Country:</label>
+		<input type="text" id="country" required><br><br>
+		<input type="submit" value="Update User">
+	
+	</form>
+	<p id="updateConfirmationMessage"></p>
+	<script>
+		$("#updateUserForm").submit(function(e){
+		e.preventDefault();
+		var userId = $("#id").val();
+		var userData = {
+			firstName: $("#firstName").val(),
+			lastName: $("#lastName").val(),
+			email: $("#email").val(),
+			userName: $("#userName").val(),
+			role: $("#role").val()
+		};
+		
+		$.ajax({
+			url: "http://localhost:8080/users/" + userId,
+			type: "PUT",
+			contentType: "application/json",
+			data: JSON.stringify(userData),
+			success: function(result){
+			$("#updateConfirmationMessage").text("User updated successfully!");
+		},
+			error: function(error){
+			console.log(error);
+			$("#updateConfirmationMessage").text("Error updating user");
+		}
+		});
+	});
+	</script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-package CatalogueService;
+package com.BidTech.auctionSystem.CatalogueService;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

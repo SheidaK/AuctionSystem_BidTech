@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Register User</title>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+</head>
+<body>
+	
+	<h1>Auction System-Register New User</h1>
+	
+	<form id="addUserForm">
+	
+		<label for="firstName">First Name:</label>
+		<input type="text" id="firstName" required><br><br>
+		
+		<label for="lastName">Last Name:</label>
+		<input type="text" id="lastName" required><br><br>
+		
+		<label for="email">Email:</label>
+		<input type="email" id="email" required><br><br>
+		
+		<label for="userName">Username:</label>
+		<input type="text" id="userName" required><br><br>
+		
+		<label for="role">Role:</label>
+		<input type="text" id="role" required><br><br>
+		
+		<label for="streetName">Street Name:</label>
+		<input type="text" id="streetName" required><br><br>
+		
+		<label for="streetNumber">Street Number:</label>
+		<input type="text" id="streetNumber" required><br><br>
+		
+		<label for="city">City:</label>
+		<input type="text" id="city" required><br><br>
+		
+		<label for="postalCode">Postal Code:</label>
+		<input type="text" id="postalCode" required><br><br>
+		
+		<label for="country">Country:</label>
+		<input type="text" id="country" required><br><br>
+		
+		<input type="submit" value="Add User">
+		
+	</form>
+	
+	<p id="confirmationMessage"></p>
+	
+	<script>
+		$("#addUserForm").submit(function(e){
+		e.preventDefault();
+		var userData = {
+			firstName: $("#firstName").val(),
+			lastName: $("#lastName").val(),
+			email: $("#email").val(),
+			userName: $("#userName").val(),
+			role: $("#role").val(),
+			streetName:$("#streetName").val(),
+			streetNumber:$("#streetNumber").val(),
+			city:$("#city").val(),
+			country:$("#country").val(),
+			postalCode: $("#postalCode").val()
+		};
+		
+		$.ajax({
+				url: "http://localhost:8080/users",
+				type: "POST",
+				contentType: "application/json",
+				data: JSON.stringify(userData),
+				success: function(result){
+				$("#confirmationMessage").text("User added successfully!");
+			},
+				error: function(error){
+				console.log(error);
+				$("#confirmationMessage").text("Error adding user");
+			}
+		});
+	});	
+	</script>
+	</body>
+</html>

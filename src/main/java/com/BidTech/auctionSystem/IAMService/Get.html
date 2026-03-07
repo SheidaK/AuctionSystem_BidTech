@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>List of Users</title>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+</head>
+<body>
+	<header>
+		<h1>Auction System-User List</h1>
+	</header>
+	<div class="container">
+	<table id="usersTable" border="1">
+	<tr>
+		<th>ID</th>
+		<th>First Name</th>
+		<th>Last Name</th>
+		<th>Email</th>
+		<th>Username</th>
+		<th>Role</th>
+		<th>StreetName</th>
+		<th>StreetNumber</th>
+		<th>City</th>
+		<th>Country</th>
+		<th>Postal Code</th>
+	</tr>
+	</table>
+	</div>
+	<script>
+	$(document).ready(function(){
+		$.ajax({
+			 url: "http://localhost:8080/users",
+			 type: 'GET',
+			 success: function(result){
+				 var table = $("#usersTable");
+				 result.forEach(function(user){
+					 var row = $("<tr></tr>");
+					 row.append($("<td></td>").text(user.id));
+					 row.append($("<td></td>").text(user.firstName));
+					 row.append($("<td></td>").text(user.lastName));
+					 row.append($("<td></td>").text(user.email));
+					 row.append($("<td></td>").text(user.userName));
+					 row.append($("<td></td>").text(user.role));
+					 row.append($("<td></td>").text(user.streetNumber));
+					 row.append($("<td></td>").text(user.streetName));
+					 row.append($("<td></td>").text(user.city));
+					 row.append($("<td></td>").text(user.country));
+					 row.append($("<td></td>").text(user.postalCode));
+					 table.append(row);
+			 	});
+		 	},
+			 error: function(error){
+			 console.log("Error:", error);
+		 }
+		 });
+	});
+
+</script>
+</body>
+</html>
