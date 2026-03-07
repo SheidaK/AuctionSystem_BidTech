@@ -1,6 +1,8 @@
 package com.BidTech.auctionSystem.IAMService;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -60,5 +62,19 @@ public class UserController {
 	@DeleteMapping("/users/{id}")
 	void deleteEmployee(@PathVariable Long id) {
 		repository.deleteById(id);
+	}
+	@GetMapping("/users/usernames/{userName}")
+	Optional<User> getUserByUsername(@PathVariable String userName){
+	    return repository.findByUserName(userName);
+	}
+	@PutMapping("/users/reset-password/{userName}")
+	public ResponseEntity<?> resetPassword(@PathVariable String userName,@RequestBody Map<String,String> body){
+	    return repository.findByUserName(userName)
+	    		.map(user -> {
+	    			user.setPassword(body.get("password"));
+	                repository.save(user);
+	                return ResponseEntity.ok("Password updated");
+	            })
+	            	.orElse(ResponseEntity.notFound().build());
 	}
 }
