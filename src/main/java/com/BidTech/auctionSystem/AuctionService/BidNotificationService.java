@@ -4,7 +4,6 @@ import org.springframework.stereotype.Component;
 
 /*
  * Concrete Observer
- * -----------------
  * Handles notifications when bids change.
  */
 

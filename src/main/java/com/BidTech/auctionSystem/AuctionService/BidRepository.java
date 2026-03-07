@@ -5,7 +5,6 @@ import java.util.List;
 
 /*
  * BidRepository
- * -------------
  * Used to store and retrieve bid history.
  */
 

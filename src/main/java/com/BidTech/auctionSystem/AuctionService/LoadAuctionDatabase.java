@@ -7,7 +7,6 @@ import java.time.LocalDateTime;
 
 /*
  * LoadAuctionDatabase
- * -------------------
  * Preloads sample auctions into the database when the application starts.
  */
 

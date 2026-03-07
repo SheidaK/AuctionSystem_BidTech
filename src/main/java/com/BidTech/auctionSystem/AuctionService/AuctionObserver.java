@@ -2,7 +2,6 @@ package com.BidTech.auctionSystem.AuctionService;
 
 /*
  * Observer Pattern
- * ----------------
  * Observers are notified whenever a new highest bid occurs.
  */
 

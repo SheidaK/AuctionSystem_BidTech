@@ -1,8 +1,6 @@
 package com.BidTech.auctionSystem.AuctionService;
 
-/*
- * Exception thrown when a bid is invalid.
- */
+//Exception thrown when a bid is invalid.
 
 public class InvalidBidException extends RuntimeException {
 

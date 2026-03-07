@@ -13,9 +13,7 @@ public class PaymentController {
     @Autowired
     private PaymentService paymentService;
 
-    /**
-     * Returns true = success
-     */
+    //Returns true = success
     @PostMapping("/process")
     public ResponseEntity<String> processPayment(
             @RequestParam Long auctionId,

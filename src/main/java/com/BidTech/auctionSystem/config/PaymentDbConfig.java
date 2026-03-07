@@ -47,7 +47,6 @@ public class PaymentDbConfig {
         HibernateJpaVendorAdapter vendorAdapter = new HibernateJpaVendorAdapter();
         em.setJpaVendorAdapter(vendorAdapter);
 
-        // THIS PART IS WHAT CREATES THE TABLES
         Map<String, Object> properties = new HashMap<>();
         properties.put("hibernate.hbm2ddl.auto", "update");
         properties.put("hibernate.dialect", "org.hibernate.community.dialect.SQLiteDialect");

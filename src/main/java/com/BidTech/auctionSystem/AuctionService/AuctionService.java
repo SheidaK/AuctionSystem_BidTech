@@ -18,9 +18,7 @@ public class AuctionService {
         this.bidRepository = bidRepository;
     }
 
-    /*
-     * Create auction
-     */
+    //Create auction
     public Auction createAuction(Long itemId, double startingPrice) {
 
         Auction auction = new Auction(itemId, startingPrice);
@@ -28,9 +26,7 @@ public class AuctionService {
         return auctionRepository.save(auction);
     }
 
-    /*
-     * Submit bid
-     */
+    //Submit bid
     public Bid submitBid(Long auctionId, Long userId, double amount) {
 
         Auction auction = auctionRepository.findById(auctionId)
@@ -55,9 +51,7 @@ public class AuctionService {
         return bid;
     }
 
-    /*
-     * Get highest bid
-     */
+    //Get highest bid
     public double getHighestBid(Long auctionId) {
 
         Auction auction = auctionRepository.findById(auctionId)
@@ -66,17 +60,13 @@ public class AuctionService {
         return auction.getHighestBid();
     }
 
-    /*
-     * Bid history
-     */
+    //Bid history
     public List<Bid> getBidHistory(Long auctionId) {
 
         return bidRepository.findByAuctionId(auctionId);
     }
 
-    /*
-     * Remaining time
-     */
+    //Remaining time
     public long remainingTime(Long auctionId) {
 
         Auction auction = auctionRepository.findById(auctionId)
@@ -94,9 +84,7 @@ public class AuctionService {
         return Math.max(seconds, 0);
     }
 
-    /*
-     * End auction
-     */
+    //End auction
     public Auction endAuction(Long auctionId) {
 
         Auction auction = auctionRepository.findById(auctionId)

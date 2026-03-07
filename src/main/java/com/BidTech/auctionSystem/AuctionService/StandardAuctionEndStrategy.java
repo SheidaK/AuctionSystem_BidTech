@@ -4,7 +4,6 @@ import org.springframework.stereotype.Component;
 
 /*
  * Concrete Strategy
- * -----------------
  * Standard auction ending behavior.
  */
 

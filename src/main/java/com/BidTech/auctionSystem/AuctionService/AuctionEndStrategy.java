@@ -2,7 +2,6 @@ package com.BidTech.auctionSystem.AuctionService;
 
 /*
  * Strategy Pattern
- * ----------------
  * Different strategies determine how an auction ends.
  */
 
