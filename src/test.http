@@ -1,25 +1,36 @@
 ### Create Auction
 POST http://localhost:8080/auction/create?itemId=1&startingPrice=100
 
+> {%
+    client.global.set("auctionId", response.body.id);
+%}
+
+###
 
 ### Place Bid
-POST http://localhost:8080/auction/1/bid?userId=2&amount=150
+POST http://localhost:8080/auction/{{auctionId}}/bid?userId=2&amount=150
 
+###
 
 ### Get Highest Bid
-GET http://localhost:8080/auction/1/highest
+GET http://localhost:8080/auction/{{auctionId}}/highest
 
+###
 
 ### Get Bid History
-GET http://localhost:8080/auction/1/history
+GET http://localhost:8080/auction/{{auctionId}}/history
 
+###
 
 ### Get Remaining Time
-GET http://localhost:8080/auction/1/remaining
+GET http://localhost:8080/auction/{{auctionId}}/remaining
 
+###
 
 ### End Auction
-POST http://localhost:8080/auction/1/end
+POST http://localhost:8080/auction/{{auctionId}}/end
+
+###
 
 ### Health Check
 GET http://localhost:8080/api/catalogue/health
