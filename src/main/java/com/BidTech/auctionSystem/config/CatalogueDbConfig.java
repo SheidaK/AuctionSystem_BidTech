@@ -1,5 +1,4 @@
 package com.BidTech.auctionSystem.config;
-
 import jakarta.persistence.EntityManagerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.*;
@@ -8,6 +7,8 @@ import org.springframework.orm.jpa.*;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+
 
 import javax.sql.DataSource;
 import java.util.HashMap;
@@ -17,9 +18,8 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.beans.factory.annotation.Value;
 
 @Configuration
-@EnableTransactionManagement
 @EnableJpaRepositories(
-        basePackages = "CatalogueService",
+        basePackages = "com.BidTech.auctionSystem.CatalogueService",
         entityManagerFactoryRef = "catalogueEntityManagerFactory",
         transactionManagerRef = "catalogueTransactionManager"
 )
@@ -50,7 +50,7 @@ public class CatalogueDbConfig {
 
         LocalContainerEntityManagerFactoryBean emf = new LocalContainerEntityManagerFactoryBean();
         emf.setDataSource(catalogueDataSource());
-        emf.setPackagesToScan("CatalogueService");
+        emf.setPackagesToScan("com.BidTech.auctionSystem.CatalogueService");
 
         HibernateJpaVendorAdapter vendorAdapter = new HibernateJpaVendorAdapter();
         emf.setJpaVendorAdapter(vendorAdapter);

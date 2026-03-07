@@ -1,4 +1,5 @@
 package com.BidTech.auctionSystem.payment.repository;
+import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.BidTech.auctionSystem.payment.model.Payment;
 import org.springframework.data.jpa.repository.JpaRepository;
