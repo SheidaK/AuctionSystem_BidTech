@@ -1,0 +1,20 @@
+#!/bin/bash
+echo "=== BidTech P
+
+echo "1. SUCCESS - Process valid payment"
+RESPONSE=$(curl -s -X POST "http://localhost:8080/api/payments/process?auctionId=1&userId=1&amount=99.99")
+echo "$RESPONSE"
+
+# Extract transactionId from the JSON response
+TRANSACTION_ID=$(echo "$RESPONSE" | grep -o '"transactionId":"[^"]*"' | cut -d'"' -f4)
+
+echo -e "\n2. SUCCESS - Check payment status using real transactionId"
+curl -v "http://localhost:8080/api/payments/status/$TRANSACTION_ID"
+
+echo -e "\n3. ROBUSTNESS TEST - Negative amount"
+curl -v -X POST "http://localhost:8080/api/payments/process?auctionId=1&userId=1&amount=-50"
+
+echo -e "\n4. ROBUSTNESS TEST - Missing parameters"
+curl -v -X POST "http://localhost:8080/api/payments/process?auctionId=1"
+
+echo -e "\n=== End of Payment Tests ==="
