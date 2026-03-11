@@ -6,21 +6,34 @@ import com.BidTech.auctionSystem.payment.repository.PaymentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.BidTech.auctionSystem.AuctionService.Auction;
+import com.BidTech.auctionSystem.AuctionService.AuctionRepository;
+import com.BidTech.auctionSystem.IAMService.User;
+import com.BidTech.auctionSystem.IAMService.UserRepository;
+import com.BidTech.auctionSystem.payment.repository.PaymentRepository;
+import com.BidTech.auctionSystem.*;
+
 @Service
 public class PaymentService {
 
     @Autowired
     private PaymentRepository paymentRepository;
+    
+    @Autowired
+    private UserRepository userRepository;
+    
+    @Autowired
+    private AuctionRepository auctionRepository;
 
     /**
-     * Processes a payment request
+     * Returns boolean: true = success, false = not winner or error
+     * Validates that the user is the winner before processing payment
      */
     public String processPayment(Long auctionId, Long userId, double amount) {
-
-        if (amount <= 0) {
-            return "Negative payment is not accepted.";
-        }
-
+    	if (amount <= 0) {
+    		return "Negative payment is not accepted.";
+    	}
+    	
         if (!isWinner(userId, auctionId)) {
             return "Please make sure you are the winner.";
         }
@@ -36,48 +49,47 @@ public class PaymentService {
         payment.setReceiptUrl("/confirmation/" + transactionId);
 
         paymentRepository.save(payment);
-
         return transactionId;
     }
 
     /**
-     * Placeholder winner check
-     * In a full system this would call the Auction service
+     * Winner check
      */
     private boolean isWinner(Long userId, Long auctionId) {
-        return true;
+    	
+        Auction auction = auctionRepository.findById(auctionId).orElse(null);
+        
+        return auction != null && userId.equals(auction.getHighestBidderId()) && !auction.isActive();
     }
 
-    /**
-     * Retrieves payment status
-     */
     public String getPaymentStatus(String transactionId) {
         return paymentRepository.findByTransactionId(transactionId)
                 .map(Payment::getStatus)
                 .orElse("NOT_FOUND");
     }
-
-    /**
-     * Generates a receipt for a payment
-     */
+    
     public Receipt generateReceipt(Long paymentId) {
-
         Payment payment = paymentRepository.findById(paymentId).orElse(null);
-
         if (payment == null) {
             return null;
         }
 
-        String shippingAddress = "Shipping address unavailable";
-
+        User user = userRepository.findById(payment.getUserId()).orElse(null);
+        
+        String shippingAddress = "Address not found";
+        
+        if (user != null) {
+            shippingAddress = user.getStreetNumber() + " " + user.getStreetName() + ", " + user.getCity() + ", " + user.getPostalCode();
+        }
+       
         return new Receipt(
-                payment.getId(),
-                payment.getUserId(),
-                shippingAddress,
-                "5-7 business days",
-                payment.getAmount(),
-                payment.getTransactionId(),
-                payment.getStatus()
+            payment.getId(),
+            payment.getUserId(),
+            shippingAddress,
+            "5-7 business days",
+            payment.getAmount(),
+            payment.getTransactionId(),
+            payment.getStatus()
         );
     }
 }
