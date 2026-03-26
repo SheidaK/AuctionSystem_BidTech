@@ -1,74 +1,128 @@
 package com.BidTech.auctionSystem.AuctionService;
 
-import org.springframework.stereotype.Service;
-
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.springframework.stereotype.Service;
+
+/**
+ * AuctionService — core business logic for the Auction domain.
+ *
+ * <p>Handles auction creation, bid submission, bid history retrieval,
+ * remaining time calculation, and auction termination.
+ * All persistence is delegated to {@link AuctionRepository} and {@link BidRepository}.
+ */
 @Service
 public class AuctionService {
 
+    /** Repository for persisting and retrieving {@link Auction} entities. */
     private final AuctionRepository auctionRepository;
+
+    /** Repository for persisting and retrieving {@link Bid} entities. */
     private final BidRepository bidRepository;
 
+    /**
+     * Constructor injection — Spring automatically provides the repository beans.
+     *
+     * @param auctionRepository the auction data access object
+     * @param bidRepository     the bid data access object
+     */
     public AuctionService(AuctionRepository auctionRepository,
                           BidRepository bidRepository) {
         this.auctionRepository = auctionRepository;
         this.bidRepository = bidRepository;
     }
 
-    //Create auction
+    /**
+     * Creates a new auction for a catalogue item.
+     * The auction starts active with a 1-hour duration.
+     *
+     * @param itemId        the ID of the catalogue item to auction
+     * @param startingPrice the opening bid amount
+     * @return the saved {@link Auction} entity with its generated ID
+     */
     public Auction createAuction(Long itemId, double startingPrice) {
-
         Auction auction = new Auction(itemId, startingPrice);
-
         return auctionRepository.save(auction);
     }
 
-    //Submit bid
+    /**
+     * Submits a bid for an active auction.
+     *
+     * <p>Validation (in order):
+     * <ol>
+     *   <li>Auction must exist — throws {@link AuctionNotFoundException}</li>
+     *   <li>Auction must be active and not past end time — throws {@link InvalidBidException}</li>
+     *   <li>Bid amount must be strictly greater than current highest bid — throws {@link InvalidBidException}</li>
+     * </ol>
+     *
+     * @param auctionId the ID of the auction to bid on
+     * @param userId    the ID of the user placing the bid
+     * @param amount    the bid amount in dollars
+     * @return the saved {@link Bid} entity
+     * @throws AuctionNotFoundException if no auction exists with the given ID
+     * @throws InvalidBidException      if the auction has ended or the bid is too low
+     */
     public Bid submitBid(Long auctionId, Long userId, double amount) {
 
         Auction auction = auctionRepository.findById(auctionId)
                 .orElseThrow(() -> new AuctionNotFoundException(auctionId));
 
+        // Reject if auction is closed or time has expired
         if (!auction.isActive() || LocalDateTime.now().isAfter(auction.getEndTime())) {
             throw new InvalidBidException("Auction has ended.");
         }
 
+        // Reject bids that don't beat the current highest — ties are not allowed
         if (amount <= auction.getHighestBid()) {
             throw new InvalidBidException("Bid must be higher than current highest bid.");
         }
 
+        // Persist the bid record
         Bid bid = new Bid(auctionId, userId, amount);
-
         bidRepository.save(bid);
+
+        // Update the auction's highest bid state so subsequent bids are validated correctly
         auction.setHighestBid(amount);
         auction.setHighestBidderId(userId);
-
         auctionRepository.save(auction);
 
         return bid;
     }
 
-    //Get highest bid
+    /**
+     * Returns the current highest bid amount for an auction.
+     *
+     * @param auctionId the ID of the auction
+     * @return the highest bid in dollars
+     * @throws AuctionNotFoundException if no auction exists with the given ID
+     */
     public double getHighestBid(Long auctionId) {
-
         Auction auction = auctionRepository.findById(auctionId)
                 .orElseThrow(() -> new AuctionNotFoundException(auctionId));
-
         return auction.getHighestBid();
     }
 
-    //Bid history
+    /**
+     * Returns the complete bid history for an auction.
+     *
+     * @param auctionId the ID of the auction
+     * @return a list of all {@link Bid} records for this auction (may be empty)
+     */
     public List<Bid> getBidHistory(Long auctionId) {
-
         return bidRepository.findByAuctionId(auctionId);
     }
 
-    //Remaining time
+    /**
+     * Returns the number of seconds remaining until the auction ends.
+     * Returns {@code 0} if the auction is inactive or already past its end time.
+     *
+     * @param auctionId the ID of the auction
+     * @return remaining time in seconds, minimum 0
+     * @throws AuctionNotFoundException if no auction exists with the given ID
+     */
     public long remainingTime(Long auctionId) {
-
         Auction auction = auctionRepository.findById(auctionId)
                 .orElseThrow(() -> new AuctionNotFoundException(auctionId));
 
@@ -81,17 +135,23 @@ public class AuctionService {
                 auction.getEndTime()
         ).getSeconds();
 
+        // Clamp to 0 — don't return negative values if the clock has passed endTime
         return Math.max(seconds, 0);
     }
 
-    //End auction
+    /**
+     * Ends an auction by marking it as inactive.
+     * After this call, no further bids can be placed and the highest bidder is the winner.
+     *
+     * @param auctionId the ID of the auction to end
+     * @return the updated {@link Auction} entity with {@code active = false}
+     * @throws AuctionNotFoundException if no auction exists with the given ID
+     */
     public Auction endAuction(Long auctionId) {
-
         Auction auction = auctionRepository.findById(auctionId)
                 .orElseThrow(() -> new AuctionNotFoundException(auctionId));
 
         auction.endAuction();
-
         return auctionRepository.save(auction);
     }
 }

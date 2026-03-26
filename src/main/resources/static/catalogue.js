@@ -1,5 +1,8 @@
-// API Base URL
-const API_BASE = 'http://localhost:8080/api/catalogue';
+// API Base URL — relative path so requests go through the Nginx load balancer
+// on whatever host/port the page was served from (e.g. http://localhost:80).
+// Using an absolute URL like 'http://localhost:8080' would bypass the load
+// balancer and fail in Docker where port 8080 is not exposed to the host.
+const API_BASE = '/api/catalogue';
 
 // Load products on page load
 document.addEventListener('DOMContentLoaded', () => {
@@ -34,7 +37,7 @@ async function loadProducts() {
             <div class="error">
                 <strong>Error loading products:</strong> ${error.message}
                 <br><br>
-                Make sure the backend server is running on port 5000.
+                Make sure the application is running and accessible at http://localhost
             </div>
         `;
     }

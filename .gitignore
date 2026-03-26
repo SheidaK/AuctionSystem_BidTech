@@ -31,3 +31,22 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Kiro IDE — all Kiro artefacts (specs, steering, settings, hooks) ###
+# The entire .kiro directory is excluded — specs, design docs, steering rules,
+# task lists, and IDE config are developer tooling, not application source code.
+.kiro/
+
+### Eclipse / Spring Tool Suite ###
+.settings/
+
+### Database Files ###
+# SQLite files are runtime data — never commit them.
+# In Docker they live in the bidtech-data named volume, not the repo.
+*.db
+
+### Markdown Documentation Files ###
+# All .md files are stored under .kiro/specs/docs/ and excluded via .kiro/ above.
+# This rule catches any .md accidentally placed at the root or elsewhere.
+*.md
+!HELP.md

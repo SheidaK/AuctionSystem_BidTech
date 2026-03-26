@@ -2,60 +2,280 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Pay Now - BidTech</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 40px; background: #f9f9f9; }
-        .box { border: 1px solid #ccc; padding: 25px; max-width: 500px; background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h1 { color: #333; }
-        button { padding: 12px 25px; background: #007bff; color: white; border: none; cursor: pointer; font-size: 16px; }
-        button:hover { background: #0056b3; }
-        label { display: block; margin: 12px 0 5px; font-weight: bold; }
-        input { width: 100%; padding: 8px; margin-bottom: 15px; border: 1px solid #ccc; }
-    </style>
-</head>
-<body>
-    <h1>Payment Page</h1>
-    <div class="box">
-        <h2>Item #1 - Winning Bid: $99.99</h2>
-        <p><strong>Shipping Address:</strong> 123 Main Street, Toronto, ON M5V 2T6</p>
-        
-        <h3>Enter Payment Details</h3>
-        <form id="paymentForm">
-            <label>Card Number:</label>
-            <input type="text" id="card" placeholder="4111111111111111" required>
-            
-            <label>Name on Card:</label>
-            <input type="text" id="name" placeholder="John Doe" required>
-            
-            <label>Expiry Date:</label>
-            <input type="text" id="expiry" placeholder="12/28" required>
-            
-            <label>CVV:</label>
-            <input type="text" id="cvv" placeholder="123" required>
-            
-            <button type="button" onclick="makePayment()">Pay Now</button>
-        </form>
-    </div>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Service — BidTech</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        function makePayment() {
-            const auctionId = 1;
-            const userId = 1;
-            const amount = 99.99;
-            
-            fetch(`/api/payments/process?auctionId=${auctionId}&userId=${userId}&amount=${amount}`, {
-                method: 'POST'
-            })
-            .then(res => res.text())
-            .then(result => {
-                if (result === "true") {
-                    alert("Payment successful! Redirecting to receipt...");
-                    window.location.href = "/receipt.html?paymentId=1";
-                } else {
-                    alert("Payment failed - you must be the winner.");
-                }
-            });
+        tailwind.config = {
+            theme: { extend: { colors: { brand: { DEFAULT: '#667eea', dark: '#5568d3' } } } }
         }
     </script>
+    <style>
+        .bg-brand-gradient { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .bg-nav-gradient   { background: linear-gradient(135deg, #4a3f8f 0%, #5a2d82 100%); }
+    </style>
+</head>
+<body class="bg-brand-gradient min-h-screen font-sans">
+
+    <!-- ── Shared Navigation Bar ── -->
+    <nav class="bg-nav-gradient shadow-lg">
+        <div class="max-w-4xl mx-auto px-6 flex items-center gap-1">
+            <span class="text-white font-bold text-lg py-4 pr-5 mr-3 border-r border-white/20">🏛️ BidTech</span>
+            <a href="/index.html"   class="text-white/85 px-4 py-4 text-sm font-medium rounded hover:bg-white/15 transition">📦 Catalogue</a>
+            <a href="/auction.html" class="text-white/85 px-4 py-4 text-sm font-medium rounded hover:bg-white/15 transition">🔨 Auction</a>
+            <a href="/users.html"   class="text-white/85 px-4 py-4 text-sm font-medium rounded hover:bg-white/15 transition">👤 Users</a>
+            <a href="/pay.html"     class="text-white bg-white/20 px-4 py-4 text-sm font-medium rounded hover:bg-white/30 transition">💳 Payment</a>
+        </div>
+    </nav>
+
+    <div class="max-w-4xl mx-auto my-8 bg-white rounded-2xl shadow-2xl overflow-hidden">
+
+        <header class="bg-brand-gradient text-white px-8 py-8">
+            <h1 class="text-3xl font-bold mb-1">💳 Payment Service</h1>
+            <p class="text-white/90">Process payments, check status, and retrieve receipts</p>
+        </header>
+
+        <!-- ── Tab bar ── -->
+        <div class="flex bg-gray-50 border-b-2 border-gray-200 overflow-x-auto">
+            <button onclick="switchTab('process')" id="btn-process" class="tab-btn px-6 py-4 text-sm font-semibold text-brand border-b-2 border-brand bg-white whitespace-nowrap">💰 Process Payment</button>
+            <button onclick="switchTab('status')"  id="btn-status"  class="tab-btn px-6 py-4 text-sm font-semibold text-gray-500 border-b-2 border-transparent hover:text-brand hover:bg-indigo-50 whitespace-nowrap transition">🔍 Check Status</button>
+            <button onclick="switchTab('receipt')" id="btn-receipt" class="tab-btn px-6 py-4 text-sm font-semibold text-gray-500 border-b-2 border-transparent hover:text-brand hover:bg-indigo-50 whitespace-nowrap transition">🧾 Get Receipt</button>
+            <button onclick="switchTab('history')" id="btn-history" class="tab-btn px-6 py-4 text-sm font-semibold text-gray-500 border-b-2 border-transparent hover:text-brand hover:bg-indigo-50 whitespace-nowrap transition">📋 Payment History</button>
+        </div>
+
+        <!-- ── TAB 4: Payment History ── GET /api/payments -->
+        <!-- Lists all past payments and links each one to its receipt page -->
+        <div id="tab-history" class="tab-panel hidden p-8">
+            <div class="flex justify-between items-center mb-6 pb-4 border-b border-gray-100">
+                <p class="text-sm text-gray-500">All recorded payments. Click a row to view the full receipt.</p>
+                <button onclick="loadHistory()" class="px-4 py-2 bg-brand text-white text-sm font-semibold rounded-lg hover:bg-brand-dark transition shadow-sm">🔄 Refresh</button>
+            </div>
+            <div id="historyContainer">
+                <div class="text-center py-12 text-gray-400">Loading payment history...</div>
+            </div>
+        </div>
+        <!-- ── TAB 1: Process Payment ── POST /api/payments/process -->
+        <div id="tab-process" class="tab-panel p-8">
+            <!-- Warning: only the auction winner can pay -->
+            <div class="bg-amber-50 border border-amber-200 text-amber-800 text-sm px-4 py-3 rounded-lg mb-6">
+                ⚠️ Only the auction winner (highest bidder on an ended auction) can process a payment. End the auction first via the Auction page.
+            </div>
+            <p class="text-sm text-gray-500 mb-6 pb-4 border-b border-gray-100">
+                Submit payment for a won auction. The system verifies you are the winner before recording the payment.
+            </p>
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-600 mb-1">Auction ID *</label>
+                    <input type="number" id="payAuctionId" placeholder="e.g. 1"
+                        class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-600 mb-1">User ID *</label>
+                    <input type="number" id="payUserId" placeholder="e.g. 3"
+                        class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition">
+                </div>
+            </div>
+            <div class="mb-6">
+                <label class="block text-sm font-semibold text-gray-600 mb-1">Amount ($) *</label>
+                <input type="number" id="payAmount" step="0.01" placeholder="e.g. 150.00"
+                    class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition">
+            </div>
+            <button onclick="processPayment()" class="px-6 py-2.5 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 transition shadow-sm">💳 Pay Now</button>
+            <div id="processResult" class="hidden mt-4 px-4 py-3 rounded-lg text-sm font-medium"></div>
+        </div>
+
+        <!-- ── TAB 2: Check Status ── GET /api/payments/status/{transactionId} -->
+        <div id="tab-status" class="tab-panel hidden p-8">
+            <p class="text-sm text-gray-500 mb-6 pb-4 border-b border-gray-100">
+                Look up the status of a payment using the transaction ID returned after processing.
+            </p>
+            <div class="mb-6">
+                <label class="block text-sm font-semibold text-gray-600 mb-1">Transaction ID *</label>
+                <input type="text" id="statusTxId" placeholder="e.g. 1748765337573"
+                    class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition">
+            </div>
+            <button onclick="checkStatus()" class="px-6 py-2.5 bg-brand text-white text-sm font-semibold rounded-lg hover:bg-brand-dark transition shadow-sm">🔍 Check Status</button>
+            <div id="statusResult" class="hidden mt-4 px-4 py-3 rounded-lg text-sm font-medium"></div>
+        </div>
+
+        <!-- ── TAB 3: Get Receipt ── GET /api/payments/receipt/{paymentId} -->
+        <div id="tab-receipt" class="tab-panel hidden p-8">
+            <p class="text-sm text-gray-500 mb-6 pb-4 border-b border-gray-100">
+                Retrieve a full receipt for a completed payment, including shipping address from the user profile.
+            </p>
+            <div class="mb-6">
+                <label class="block text-sm font-semibold text-gray-600 mb-1">Payment ID *</label>
+                <input type="number" id="receiptPaymentId" placeholder="e.g. 1"
+                    class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition">
+            </div>
+            <button onclick="getReceipt()" class="px-6 py-2.5 bg-brand text-white text-sm font-semibold rounded-lg hover:bg-brand-dark transition shadow-sm">🧾 Get Receipt</button>
+            <div id="receiptResult" class="hidden mt-4 px-4 py-3 rounded-lg text-sm font-medium"></div>
+
+            <!-- Receipt card — shown after a successful fetch -->
+            <div id="receiptCard" class="hidden mt-6 border-2 border-gray-200 rounded-xl overflow-hidden">
+                <div class="bg-brand-gradient text-white px-6 py-4">
+                    <h3 class="text-lg font-bold">🧾 Payment Receipt</h3>
+                </div>
+                <div class="divide-y divide-gray-100">
+                    <div class="flex justify-between px-6 py-3 text-sm">
+                        <span class="font-semibold text-gray-600">Transaction ID</span>
+                        <span class="font-bold text-brand" id="rcTxId">—</span>
+                    </div>
+                    <div class="flex justify-between px-6 py-3 text-sm">
+                        <span class="font-semibold text-gray-600">Status</span>
+                        <span class="text-gray-500" id="rcStatus">—</span>
+                    </div>
+                    <div class="flex justify-between px-6 py-3 text-sm">
+                        <span class="font-semibold text-gray-600">Amount Paid</span>
+                        <span class="font-bold text-brand" id="rcAmount">—</span>
+                    </div>
+                    <div class="flex justify-between px-6 py-3 text-sm">
+                        <span class="font-semibold text-gray-600">Shipping Address</span>
+                        <span class="text-gray-500 text-right max-w-xs" id="rcAddress">—</span>
+                    </div>
+                    <div class="flex justify-between px-6 py-3 text-sm">
+                        <span class="font-semibold text-gray-600">Estimated Delivery</span>
+                        <span class="text-gray-500" id="rcDelivery">—</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    // All API calls use relative URLs — routed through the Nginx load balancer.
+    // The load balancer proxies /api/payments/* to the Spring Boot backend.
+
+    /** Switches the visible tab and updates button styles. @param {string} name */
+    function switchTab(name) {
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+        document.querySelectorAll('.tab-btn').forEach(b => {
+            b.classList.remove('text-brand', 'border-brand', 'bg-white');
+            b.classList.add('text-gray-500', 'border-transparent');
+        });
+        document.getElementById('tab-' + name).classList.remove('hidden');
+        const btn = document.getElementById('btn-' + name);
+        btn.classList.add('text-brand', 'border-brand', 'bg-white');
+        btn.classList.remove('text-gray-500', 'border-transparent');
+        // Auto-load history whenever the history tab is opened
+        if (name === 'history') loadHistory();
+    }
+
+    /** Shows a result message with colour coding. */
+    function showResult(id, msg, type) {
+        const el = document.getElementById(id);
+        const styles = { success: 'bg-green-50 text-green-800 border border-green-200', error: 'bg-red-50 text-red-800 border border-red-200', info: 'bg-blue-50 text-blue-800 border border-blue-200' };
+        el.className = `mt-4 px-4 py-3 rounded-lg text-sm font-medium ${styles[type]}`;
+        el.textContent = msg;
+    }
+
+    /** Processes a payment via POST /api/payments/process. @returns {Promise<void>} */
+    async function processPayment() {
+        const auctionId = document.getElementById('payAuctionId').value;
+        const userId    = document.getElementById('payUserId').value;
+        const amount    = document.getElementById('payAmount').value;
+        if (!auctionId || !userId || !amount) { showResult('processResult', 'Please fill in all fields.', 'error'); return; }
+        try {
+            const res  = await fetch(`/api/payments/process?auctionId=${auctionId}&userId=${userId}&amount=${amount}`, { method: 'POST' });
+            const body = await res.text();
+            if (!res.ok) throw new Error(body || `HTTP ${res.status}`);
+            // On success the backend returns the transaction ID as a plain string
+            showResult('processResult', `✅ Payment successful! Transaction ID: ${body}`, 'success');
+        } catch (err) { showResult('processResult', `❌ ${err.message}`, 'error'); }
+    }
+
+    /** Checks payment status via GET /api/payments/status/{transactionId}. @returns {Promise<void>} */
+    async function checkStatus() {
+        const txId = document.getElementById('statusTxId').value.trim();
+        if (!txId) { showResult('statusResult', 'Please enter a Transaction ID.', 'error'); return; }
+        try {
+            const res = await fetch(`/api/payments/status/${encodeURIComponent(txId)}`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const status = await res.text();
+            // Backend returns "Payment Status: SUCCESS" or "Payment Status: NOT_FOUND"
+            showResult('statusResult', status.includes('NOT_FOUND') ? `⚠️ ${status}` : `✅ ${status}`, status.includes('NOT_FOUND') ? 'error' : 'success');
+        } catch (err) { showResult('statusResult', `❌ ${err.message}`, 'error'); }
+    }
+
+    /**
+     * Loads all payments via GET /api/payments and renders them as a table.
+     * Each row links to the receipt page for that payment.
+     * @returns {Promise<void>}
+     */
+    async function loadHistory() {
+        const c = document.getElementById('historyContainer');
+        c.innerHTML = '<div class="text-center py-12 text-gray-400">Loading...</div>';
+        try {
+            // GET /api/payments returns all payment records from PAYMENT.db
+            const res = await fetch('/api/payments');
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const payments = await res.json();
+
+            if (!payments.length) {
+                c.innerHTML = '<div class="text-center py-12 text-gray-400">No payments recorded yet.</div>';
+                return;
+            }
+
+            // Build a table — each row is clickable and opens the receipt page
+            const rows = payments.map(p => `
+                <tr class="border-b border-gray-100 hover:bg-indigo-50 cursor-pointer transition"
+                    onclick="window.location.href='/receipt.html?paymentId=${p.id}'">
+                    <td class="px-4 py-3 text-gray-500 text-sm">${p.id}</td>
+                    <td class="px-4 py-3 text-gray-500 text-sm">${p.auctionId}</td>
+                    <td class="px-4 py-3 text-gray-500 text-sm">${p.userId}</td>
+                    <td class="px-4 py-3 font-semibold text-brand text-sm">$${Number(p.amount).toFixed(2)}</td>
+                    <td class="px-4 py-3 text-sm">
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">${p.status}</span>
+                    </td>
+                    <td class="px-4 py-3 text-gray-400 text-xs font-mono">${p.transactionId}</td>
+                    <td class="px-4 py-3 text-sm">
+                        <!-- Link to the receipt page for this specific payment -->
+                        <a href="/receipt.html?paymentId=${p.id}"
+                           class="text-brand hover:underline font-medium text-xs"
+                           onclick="event.stopPropagation()">View Receipt →</a>
+                    </td>
+                </tr>`).join('');
+
+            c.innerHTML = `
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm border-collapse">
+                        <thead><tr class="bg-gray-50 border-b-2 border-gray-200">
+                            <th class="text-left px-4 py-3 font-semibold text-gray-600">ID</th>
+                            <th class="text-left px-4 py-3 font-semibold text-gray-600">Auction</th>
+                            <th class="text-left px-4 py-3 font-semibold text-gray-600">User</th>
+                            <th class="text-left px-4 py-3 font-semibold text-gray-600">Amount</th>
+                            <th class="text-left px-4 py-3 font-semibold text-gray-600">Status</th>
+                            <th class="text-left px-4 py-3 font-semibold text-gray-600">Transaction ID</th>
+                            <th class="text-left px-4 py-3 font-semibold text-gray-600">Receipt</th>
+                        </tr></thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>`;
+        } catch (err) {
+            c.innerHTML = `<div class="px-4 py-3 bg-red-50 text-red-800 rounded-lg text-sm">Error loading history: ${err.message}</div>`;
+        }
+    }
+
+    /** Retrieves a receipt via GET /api/payments/receipt/{paymentId}. @returns {Promise<void>} */    async function getReceipt() {
+        const paymentId = document.getElementById('receiptPaymentId').value;
+        if (!paymentId) { showResult('receiptResult', 'Please enter a Payment ID.', 'error'); return; }
+        document.getElementById('receiptCard').classList.add('hidden');
+        try {
+            const res = await fetch(`/api/payments/receipt/${paymentId}`);
+            if (res.status === 404) throw new Error('Payment not found.');
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const r = await res.json();
+            // Populate receipt card fields from the API response
+            document.getElementById('rcTxId').textContent     = r.transactionId || '—';
+            document.getElementById('rcStatus').textContent   = r.status || '—';
+            const amt = r.totalAmount ?? r.amount;
+            document.getElementById('rcAmount').textContent   = amt != null ? `$${Number(amt).toFixed(2)}` : '—';
+            document.getElementById('rcAddress').textContent  = r.shippingAddress || '—';
+            document.getElementById('rcDelivery').textContent = r.estimatedDelivery || r.deliveryTime || '5-7 business days';
+            showResult('receiptResult', '🧾 Receipt loaded successfully.', 'success');
+            document.getElementById('receiptCard').classList.remove('hidden');
+        } catch (err) { showResult('receiptResult', `❌ ${err.message}`, 'error'); }
+    }
+</script>
 </body>
 </html>

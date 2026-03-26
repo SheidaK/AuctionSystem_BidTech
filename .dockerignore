@@ -1,0 +1,39 @@
+# ── Build output ─────────────────────────────────────────────────────────────
+# Exclude most of the Maven target directory to keep the build context small.
+# We use a negation rule to allow only the final repackaged JAR through —
+# that is the only file Dockerfile.backend needs to COPY into the image.
+# Without this exception, Docker would fail with "file not found" during COPY.
+target/
+!target/auctionSystem-0.0.1-SNAPSHOT.jar
+
+# ── Local SQLite database files ───────────────────────────────────────────────
+# IMPORTANT: Never bake local DB files into the image. The containers use a
+# Docker named volume (bidtech-data) mounted at /app/data/ instead.
+# If these were included, local test data could leak into the production image.
+*.db
+
+# ── Git metadata ──────────────────────────────────────────────────────────────
+# No need to ship version control history inside the image.
+.git/
+.gitignore
+.gitattributes
+
+# ── Maven wrapper internals ───────────────────────────────────────────────────
+# The Maven wrapper is only needed to build the JAR (done in deploy.ps1 on the host).
+# It is not needed inside the container at runtime.
+.mvn/
+
+# ── Documentation ─────────────────────────────────────────────────────────────
+# Markdown files are for humans, not containers.
+*.md
+
+# ── IDE and Eclipse project files ─────────────────────────────────────────────
+# These are local developer configuration files with no runtime value.
+.settings/
+.classpath
+.project
+.vscode/
+
+# ── Postman collections ───────────────────────────────────────────────────────
+# API test collections are developer tooling, not application code.
+postman/

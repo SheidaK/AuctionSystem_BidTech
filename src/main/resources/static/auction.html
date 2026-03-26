@@ -1,138 +1,270 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Auction Service</title>
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auction Service — BidTech</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: { extend: { colors: { brand: { DEFAULT: '#667eea', dark: '#5568d3', purple: '#764ba2' } } } }
+        }
+    </script>
     <style>
-        body {
-            font-family: Arial;
-            margin: 40px;
-        }
-
-        section {
-            border: 1px solid #ccc;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-
-        button {
-            margin-top: 10px;
-        }
+        .bg-brand-gradient { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .bg-nav-gradient   { background: linear-gradient(135deg, #4a3f8f 0%, #5a2d82 100%); }
     </style>
-
 </head>
-<body>
+<body class="bg-brand-gradient min-h-screen font-sans">
 
-<h1>Auction Service UI</h1>
+    <!-- ── Shared Navigation Bar ── -->
+    <nav class="bg-nav-gradient shadow-lg">
+        <div class="max-w-5xl mx-auto px-6 flex items-center gap-1">
+            <span class="text-white font-bold text-lg py-4 pr-5 mr-3 border-r border-white/20">🏛️ BidTech</span>
+            <a href="/index.html"   class="text-white/85 px-4 py-4 text-sm font-medium rounded hover:bg-white/15 transition">📦 Catalogue</a>
+            <a href="/auction.html" class="text-white bg-white/20 px-4 py-4 text-sm font-medium rounded hover:bg-white/30 transition">🔨 Auction</a>
+            <a href="/users.html"   class="text-white/85 px-4 py-4 text-sm font-medium rounded hover:bg-white/15 transition">👤 Users</a>
+            <a href="/pay.html"     class="text-white/85 px-4 py-4 text-sm font-medium rounded hover:bg-white/15 transition">💳 Payment</a>
+        </div>
+    </nav>
 
-<!-- CREATE AUCTION -->
-<section>
-    <h2>Create Auction</h2>
+    <div class="max-w-5xl mx-auto my-8 bg-white rounded-2xl shadow-2xl overflow-hidden">
 
-    Item ID:
-    <input id="itemId">
+        <header class="bg-brand-gradient text-white px-8 py-8">
+            <h1 class="text-3xl font-bold mb-1">🔨 Auction Service</h1>
+            <p class="text-white/90">Create auctions, place bids, and manage auction lifecycle</p>
+        </header>
 
-    Starting Price:
-    <input id="startingPrice">
+        <!-- ── Tab bar ── -->
+        <div class="flex bg-gray-50 border-b-2 border-gray-200 overflow-x-auto">
+            <button onclick="switchTab('create')" id="btn-create"
+                class="tab-btn px-6 py-4 text-sm font-semibold text-brand border-b-2 border-brand bg-white whitespace-nowrap">➕ Create Auction</button>
+            <button onclick="switchTab('bid')" id="btn-bid"
+                class="tab-btn px-6 py-4 text-sm font-semibold text-gray-500 border-b-2 border-transparent hover:text-brand hover:bg-indigo-50 whitespace-nowrap transition">💰 Place Bid</button>
+            <button onclick="switchTab('query')" id="btn-query"
+                class="tab-btn px-6 py-4 text-sm font-semibold text-gray-500 border-b-2 border-transparent hover:text-brand hover:bg-indigo-50 whitespace-nowrap transition">🔍 Query Auction</button>
+            <button onclick="switchTab('end')" id="btn-end"
+                class="tab-btn px-6 py-4 text-sm font-semibold text-gray-500 border-b-2 border-transparent hover:text-brand hover:bg-indigo-50 whitespace-nowrap transition">🏁 End Auction</button>
+        </div>
 
-    <br>
+        <!-- ── Tab: Create Auction ── POST /auction/create -->
+        <div id="tab-create" class="tab-panel p-8">
+            <p class="text-sm text-gray-500 mb-6 pb-4 border-b border-gray-100">
+                Create a new auction for a catalogue item. The auction will be active for 1 hour from creation.
+            </p>
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-600 mb-1">Item ID (from Catalogue) *</label>
+                    <input type="number" id="createItemId" placeholder="e.g. 1"
+                        class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-600 mb-1">Starting Price ($) *</label>
+                    <input type="number" id="createStartingPrice" step="0.01" placeholder="e.g. 100.00"
+                        class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition">
+                </div>
+            </div>
+            <button onclick="createAuction()" class="px-6 py-2.5 bg-brand text-white text-sm font-semibold rounded-lg hover:bg-brand-dark transition shadow-sm">Create Auction</button>
+            <div id="createResult" class="hidden mt-4 px-4 py-3 rounded-lg text-sm font-medium"></div>
+        </div>
 
-    <button onclick="createAuction()">Create Auction</button>
+        <!-- ── Tab: Place Bid ── POST /auction/{id}/bid -->
+        <div id="tab-bid" class="tab-panel hidden p-8">
+            <p class="text-sm text-gray-500 mb-6 pb-4 border-b border-gray-100">
+                Place a bid on an active auction. The bid must be strictly higher than the current highest bid.
+            </p>
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-600 mb-1">Auction ID *</label>
+                    <input type="number" id="bidAuctionId" placeholder="e.g. 1"
+                        class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-600 mb-1">User ID *</label>
+                    <input type="number" id="bidUserId" placeholder="e.g. 3"
+                        class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition">
+                </div>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-semibold text-gray-600 mb-1">Bid Amount ($) *</label>
+                <input type="number" id="bidAmount" step="0.01" placeholder="e.g. 150.00"
+                    class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition">
+            </div>
+            <button onclick="placeBid()" class="px-6 py-2.5 bg-brand text-white text-sm font-semibold rounded-lg hover:bg-brand-dark transition shadow-sm">Place Bid</button>
+            <div id="bidResult" class="hidden mt-4 px-4 py-3 rounded-lg text-sm font-medium"></div>
+        </div>
 
-    <p id="createResult"></p>
-</section>
+        <!-- ── Tab: Query Auction ── GET /auction/{id}/highest|history|remaining -->
+        <div id="tab-query" class="tab-panel hidden p-8">
+            <p class="text-sm text-gray-500 mb-6 pb-4 border-b border-gray-100">
+                Look up auction details — current highest bid, full bid history, or time remaining.
+            </p>
+            <div class="mb-4">
+                <label class="block text-sm font-semibold text-gray-600 mb-1">Auction ID *</label>
+                <input type="number" id="queryAuctionId" placeholder="e.g. 1"
+                    class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition">
+            </div>
+            <div class="flex gap-3 flex-wrap">
+                <button onclick="getHighestBid()"   class="px-5 py-2.5 bg-brand text-white text-sm font-semibold rounded-lg hover:bg-brand-dark transition shadow-sm">💵 Highest Bid</button>
+                <button onclick="getRemainingTime()" class="px-5 py-2.5 bg-brand text-white text-sm font-semibold rounded-lg hover:bg-brand-dark transition shadow-sm">⏱ Time Remaining</button>
+                <button onclick="getBidHistory()"   class="px-5 py-2.5 bg-brand text-white text-sm font-semibold rounded-lg hover:bg-brand-dark transition shadow-sm">📋 Bid History</button>
+            </div>
+            <div id="queryResult" class="hidden mt-4 px-4 py-3 rounded-lg text-sm font-medium"></div>
+            <div id="historyTable" class="mt-4 overflow-x-auto"></div>
+        </div>
 
-
-<!-- PLACE BID -->
-<section>
-    <h2>Place Bid</h2>
-
-    Auction ID:
-    <input id="bidAuctionId">
-
-    User ID:
-    <input id="userId">
-
-    Amount:
-    <input id="amount">
-
-    <br>
-
-    <button onclick="placeBid()">Place Bid</button>
-
-    <p id="bidResult"></p>
-</section>
-
-
-<!-- GET HIGHEST BID -->
-<section>
-    <h2>Get Highest Bid</h2>
-
-    Auction ID:
-    <input id="highestAuctionId">
-
-    <br>
-
-    <button onclick="getHighest()">Get Highest Bid</button>
-
-    <p id="highestResult"></p>
-</section>
-
+        <!-- ── Tab: End Auction ── POST /auction/{id}/end -->
+        <div id="tab-end" class="tab-panel hidden p-8">
+            <p class="text-sm text-gray-500 mb-6 pb-4 border-b border-gray-100">
+                Manually end an active auction. The highest bidder becomes the winner and may proceed to payment.
+            </p>
+            <div class="mb-4 max-w-xs">
+                <label class="block text-sm font-semibold text-gray-600 mb-1">Auction ID *</label>
+                <input type="number" id="endAuctionId" placeholder="e.g. 1"
+                    class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition">
+            </div>
+            <button onclick="endAuction()" class="px-6 py-2.5 bg-red-500 text-white text-sm font-semibold rounded-lg hover:bg-red-600 transition shadow-sm">🏁 End Auction</button>
+            <div id="endResult" class="hidden mt-4 px-4 py-3 rounded-lg text-sm font-medium"></div>
+        </div>
+    </div>
 
 <script>
+    // All API calls use relative URLs — routed through the Nginx load balancer.
+    // The load balancer proxies /auction/* to the Spring Boot backend on port 8080.
 
-    const baseURL = "http://localhost:8080/auction";
-
-
-    async function createAuction(){
-
-        let itemId = document.getElementById("itemId").value;
-        let price = document.getElementById("startingPrice").value;
-
-        let res = await fetch(`${baseURL}/create?itemId=${itemId}&startingPrice=${price}`, {
-            method: "POST"
+    /**
+     * Switches the visible tab and updates button styles.
+     * @param {string} name - Tab identifier: 'create' | 'bid' | 'query' | 'end'
+     */
+    function switchTab(name) {
+        // Hide all panels and reset all button styles
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+        document.querySelectorAll('.tab-btn').forEach(b => {
+            b.classList.remove('text-brand', 'border-brand', 'bg-white');
+            b.classList.add('text-gray-500', 'border-transparent');
         });
-
-        let data = await res.json();
-
-        document.getElementById("createResult").innerText =
-            "Created Auction ID: " + data.id;
-
+        // Show selected panel and highlight its button
+        document.getElementById('tab-' + name).classList.remove('hidden');
+        const btn = document.getElementById('btn-' + name);
+        btn.classList.add('text-brand', 'border-brand', 'bg-white');
+        btn.classList.remove('text-gray-500', 'border-transparent');
     }
 
-
-    async function placeBid(){
-
-        let auctionId = document.getElementById("bidAuctionId").value;
-        let userId = document.getElementById("userId").value;
-        let amount = document.getElementById("amount").value;
-
-        let res = await fetch(`${baseURL}/${auctionId}/bid?userId=${userId}&amount=${amount}`, {
-            method: "POST"
-        });
-
-        let data = await res.json();
-
-        document.getElementById("bidResult").innerText =
-            "Bid placed successfully"
-
+    /**
+     * Shows a result message with appropriate colour styling.
+     * @param {string} id   - Element ID to update
+     * @param {string} msg  - Message text
+     * @param {string} type - 'success' | 'error' | 'info'
+     */
+    function showResult(id, msg, type) {
+        const el = document.getElementById(id);
+        const styles = {
+            success: 'bg-green-50 text-green-800 border border-green-200',
+            error:   'bg-red-50 text-red-800 border border-red-200',
+            info:    'bg-blue-50 text-blue-800 border border-blue-200'
+        };
+        el.className = `mt-4 px-4 py-3 rounded-lg text-sm font-medium ${styles[type]}`;
+        el.textContent = msg;
     }
 
-
-    async function getHighest(){
-
-        let auctionId = document.getElementById("highestAuctionId").value;
-
-        let res = await fetch(`${baseURL}/${auctionId}/highest`);
-
-        let data = await res.text();
-
-        document.getElementById("highestResult").innerText =
-            "Highest bid: $" + data;
-
+    /** Creates a new auction via POST /auction/create. @returns {Promise<void>} */
+    async function createAuction() {
+        const itemId = document.getElementById('createItemId').value;
+        const price  = document.getElementById('createStartingPrice').value;
+        if (!itemId || !price) { showResult('createResult', 'Please fill in both fields.', 'error'); return; }
+        try {
+            const res = await fetch(`/auction/create?itemId=${itemId}&startingPrice=${price}`, { method: 'POST' });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const d = await res.json();
+            showResult('createResult', `✅ Auction created! ID: ${d.id} | Item: ${d.itemId} | Starting bid: $${d.highestBid} | Ends: ${new Date(d.endTime).toLocaleString()}`, 'success');
+        } catch (err) { showResult('createResult', `❌ ${err.message}`, 'error'); }
     }
 
+    /** Places a bid via POST /auction/{id}/bid. @returns {Promise<void>} */
+    async function placeBid() {
+        const auctionId = document.getElementById('bidAuctionId').value;
+        const userId    = document.getElementById('bidUserId').value;
+        const amount    = document.getElementById('bidAmount').value;
+        if (!auctionId || !userId || !amount) { showResult('bidResult', 'Please fill in all fields.', 'error'); return; }
+        try {
+            const res = await fetch(`/auction/${auctionId}/bid?userId=${userId}&amount=${amount}`, { method: 'POST' });
+            if (!res.ok) { const m = await res.text(); throw new Error(m || `HTTP ${res.status}`); }
+            const d = await res.json();
+            showResult('bidResult', `✅ Bid placed! ID: ${d.id} | Amount: $${d.amount}`, 'success');
+        } catch (err) { showResult('bidResult', `❌ ${err.message}`, 'error'); }
+    }
+
+    /** Gets highest bid via GET /auction/{id}/highest. @returns {Promise<void>} */
+    async function getHighestBid() {
+        const id = document.getElementById('queryAuctionId').value;
+        if (!id) { showResult('queryResult', 'Please enter an Auction ID.', 'error'); return; }
+        document.getElementById('historyTable').innerHTML = '';
+        try {
+            const res = await fetch(`/auction/${id}/highest`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            showResult('queryResult', `💵 Current highest bid: $${await res.text()}`, 'info');
+        } catch (err) { showResult('queryResult', `❌ ${err.message}`, 'error'); }
+    }
+
+    /** Gets remaining time via GET /auction/{id}/remaining. @returns {Promise<void>} */
+    async function getRemainingTime() {
+        const id = document.getElementById('queryAuctionId').value;
+        if (!id) { showResult('queryResult', 'Please enter an Auction ID.', 'error'); return; }
+        document.getElementById('historyTable').innerHTML = '';
+        try {
+            const res = await fetch(`/auction/${id}/remaining`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const secs = parseInt(await res.text());
+            // Convert raw seconds to a human-readable format
+            const label = secs <= 0 ? 'Auction has ended' : `${Math.floor(secs/60)}m ${secs%60}s remaining`;
+            showResult('queryResult', `⏱ ${label}`, secs <= 0 ? 'error' : 'info');
+        } catch (err) { showResult('queryResult', `❌ ${err.message}`, 'error'); }
+    }
+
+    /** Gets bid history via GET /auction/{id}/history. @returns {Promise<void>} */
+    async function getBidHistory() {
+        const id = document.getElementById('queryAuctionId').value;
+        if (!id) { showResult('queryResult', 'Please enter an Auction ID.', 'error'); return; }
+        try {
+            const res = await fetch(`/auction/${id}/history`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const bids = await res.json();
+            if (!bids.length) { showResult('queryResult', 'No bids placed yet.', 'info'); document.getElementById('historyTable').innerHTML = ''; return; }
+            showResult('queryResult', `📋 ${bids.length} bid(s) found`, 'info');
+            // Render bids in a Tailwind-styled table
+            document.getElementById('historyTable').innerHTML = `
+                <table class="w-full text-sm border-collapse mt-2">
+                    <thead><tr class="bg-gray-50 border-b-2 border-gray-200">
+                        <th class="text-left px-4 py-2 font-semibold text-gray-600">Bid ID</th>
+                        <th class="text-left px-4 py-2 font-semibold text-gray-600">User ID</th>
+                        <th class="text-left px-4 py-2 font-semibold text-gray-600">Amount</th>
+                        <th class="text-left px-4 py-2 font-semibold text-gray-600">Time</th>
+                    </tr></thead>
+                    <tbody>${bids.map(b => `
+                        <tr class="border-b border-gray-100 hover:bg-gray-50">
+                            <td class="px-4 py-2 text-gray-500">${b.id}</td>
+                            <td class="px-4 py-2 text-gray-500">${b.userId}</td>
+                            <td class="px-4 py-2 font-semibold text-brand">$${b.amount.toFixed(2)}</td>
+                            <td class="px-4 py-2 text-gray-400">${b.timestamp ? new Date(b.timestamp).toLocaleString() : '—'}</td>
+                        </tr>`).join('')}
+                    </tbody>
+                </table>`;
+        } catch (err) { showResult('queryResult', `❌ ${err.message}`, 'error'); }
+    }
+
+    /** Ends an auction via POST /auction/{id}/end. @returns {Promise<void>} */
+    async function endAuction() {
+        const id = document.getElementById('endAuctionId').value;
+        if (!id) { showResult('endResult', 'Please enter an Auction ID.', 'error'); return; }
+        if (!confirm(`End auction #${id}? This cannot be undone.`)) return;
+        try {
+            const res = await fetch(`/auction/${id}/end`, { method: 'POST' });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const d = await res.json();
+            const winner = d.highestBidderId ? `Winner: User #${d.highestBidderId} with $${d.highestBid}` : 'No bids were placed.';
+            showResult('endResult', `🏁 Auction #${d.id} ended. ${winner}`, 'success');
+        } catch (err) { showResult('endResult', `❌ ${err.message}`, 'error'); }
+    }
 </script>
-
 </body>
 </html>

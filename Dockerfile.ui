@@ -1,0 +1,33 @@
+# ── Base Image ───────────────────────────────────────────────────────────────
+# nginx:alpine is chosen because:
+#   1. It is purpose-built for serving static files — no JVM or runtime needed
+#   2. Alpine base keeps the image tiny (~7MB) — ideal for HTML/JS/CSS serving
+#   3. Nginx handles concurrent connections efficiently with minimal CPU/memory
+FROM nginx:alpine
+
+# ── Remove Default Config ─────────────────────────────────────────────────────
+# The default Nginx config listens on port 80, which would conflict with the
+# load balancer container that also uses port 80. We replace it with our own
+# config (ui.conf) that listens on port 3000 instead.
+RUN rm /etc/nginx/conf.d/default.conf
+
+# ── Custom Nginx Config ───────────────────────────────────────────────────────
+# Copy our UI server config which sets up Nginx to:
+#   - Listen on port 3000 (internal only, not exposed to host)
+#   - Serve files from /usr/share/nginx/html
+#   - Fall back to index.html for any path not found (supports page navigation)
+COPY nginx/ui.conf /etc/nginx/conf.d/ui.conf
+
+# ── Static Frontend Files ─────────────────────────────────────────────────────
+# Copy all static files from the Spring Boot resources/static directory into
+# the Nginx web root. This includes:
+#   index.html, catalogue.html, auction.html, payment.html
+#   catalogue.js, and any CSS or image assets
+# Files are baked into the image at build time — no runtime volume mount needed.
+COPY src/main/resources/static/ /usr/share/nginx/html/
+
+# ── Exposed Port ──────────────────────────────────────────────────────────────
+# Documents that this container listens on port 3000 inside the Docker network.
+# NOTE: This port is intentionally NOT published to the host in docker-compose.yml.
+# The UI is only reachable through the load balancer on port 80.
+EXPOSE 3000

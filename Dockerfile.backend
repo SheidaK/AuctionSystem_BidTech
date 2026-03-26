@@ -1,0 +1,48 @@
+# ── Base Image ───────────────────────────────────────────────────────────────
+# eclipse-temurin:21-jre-alpine is chosen for two reasons:
+#   1. JRE-only (no compiler) — ~80MB vs ~300MB for a full JDK image
+#   2. Alpine Linux base — minimal OS footprint, fewer security vulnerabilities
+# We need Java 21 to match the version used to compile the Spring Boot application.
+FROM eclipse-temurin:21-jre-alpine
+
+# ── Working Directory ─────────────────────────────────────────────────────────
+# All subsequent commands and the running process will operate from /app.
+# Using a dedicated directory keeps the container filesystem organised.
+WORKDIR /app
+
+# ── Application JAR ───────────────────────────────────────────────────────────
+# Copy the pre-built JAR from the Maven target directory.
+# The JAR is built on the host by deploy.ps1 (./mvnw clean package) before
+# this image is built — we intentionally do NOT run Maven inside Docker to
+# keep the image small and avoid needing Maven/JDK in the runtime image.
+COPY target/auctionSystem-0.0.1-SNAPSHOT.jar app.jar
+
+# ── Data Directory ────────────────────────────────────────────────────────────
+# Create the directory that will serve as the mount point for the Docker named
+# volume (bidtech-data). All four SQLite database files will live here at runtime:
+#   /app/data/IAM.db
+#   /app/data/CATALOGUE.db
+#   /app/data/AUCTION.db
+#   /app/data/PAYMENT.db
+# This directory must exist before the volume is mounted, otherwise Docker
+# creates it as root and Hibernate may have permission issues writing DB files.
+RUN mkdir -p /app/data
+
+# ── Exposed Port ──────────────────────────────────────────────────────────────
+# Documents that the application listens on port 8080 inside the container.
+# NOTE: This port is intentionally NOT published to the host in docker-compose.yml.
+# All traffic reaches the backend only through the load balancer on port 80.
+EXPOSE 8080
+
+# ── Entrypoint ────────────────────────────────────────────────────────────────
+# Start the Spring Boot application and override all four database connection URLs
+# via command-line arguments. This approach is used instead of modifying
+# application.properties so that the same JAR and image can be used both:
+#   - Locally (where DBs live in the project root)
+#   - In Docker (where DBs live in the /app/data volume mount)
+# Spring Boot picks up --key=value args and treats them as property overrides.
+ENTRYPOINT ["java", "-jar", "app.jar", \
+  "--app.datasource.iam.url=jdbc:sqlite:/app/data/IAM.db", \
+  "--app.datasource.auction.url=jdbc:sqlite:/app/data/AUCTION.db", \
+  "--app.datasource.catalogue.url=jdbc:sqlite:/app/data/CATALOGUE.db", \
+  "--app.datasource.payment.url=jdbc:sqlite:/app/data/PAYMENT.db"]

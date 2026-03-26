@@ -1,0 +1,124 @@
+# ── BidTech Auction System — Docker Compose Stack ────────────────────────────
+#
+# This file defines the full multi-container deployment for the BidTech application.
+# It brings up four components:
+#   1. backend      — Spring Boot API (port 8080, internal only)
+#   2. ui           — Nginx static file server (port 3000, internal only)
+#   3. loadbalancer — Nginx reverse proxy (port 80, host-exposed)
+#   4. bidtech-data — Named volume for SQLite database persistence
+#
+# Users access the application exclusively via http://localhost (port 80).
+# Ports 8080 and 3000 are never exposed to the host — network isolation is enforced.
+#
+# Usage:
+#   Deploy:  ./scripts/deploy.ps1
+#   Start:   ./scripts/start.ps1
+#   Stop:    ./scripts/stop.ps1
+
+# ── Internal Network ──────────────────────────────────────────────────────────
+# A custom bridge network is required so containers can resolve each other by
+# service name (e.g. 'backend', 'ui') via Docker's internal DNS.
+# Without a named network, inter-container DNS resolution is not guaranteed.
+networks:
+  bidtech-network:
+    driver: bridge
+
+# ── Persistent Volume ─────────────────────────────────────────────────────────
+# Named volume for all four SQLite database files.
+# This volume survives 'docker compose stop' and 'docker compose down'.
+# Data is only deleted with 'docker compose down -v' (explicit volume removal).
+volumes:
+  bidtech-data:
+    name: bidtech-data   # Explicit name prevents Docker from prefixing with project name
+
+services:
+
+  # ── Backend: Spring Boot API ────────────────────────────────────────────────
+  # Runs the BidTech Spring Boot application.
+  # Handles all REST API requests routed from the load balancer.
+  # NOT exposed to the host — only reachable via the load balancer on port 80.
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend   # Uses JRE-only Alpine image, overrides DB paths
+    image: bidtech-backend:latest
+    container_name: bidtech-backend
+    networks:
+      - bidtech-network
+    volumes:
+      # Mount the named volume at /app/data — this is where all four SQLite files live.
+      # The Dockerfile.backend ENTRYPOINT points all DB URLs to this directory.
+      - bidtech-data:/app/data
+    restart: unless-stopped   # Restart on crash, but not when manually stopped
+    healthcheck:
+      # wget is available in Alpine and checks the Spring Boot health endpoint.
+      # --quiet suppresses output; --tries=1 means one attempt per check interval.
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider",
+             "http://localhost:8080/api/catalogue/health"]
+      interval: 30s      # Check every 30 seconds — balances responsiveness vs overhead
+      timeout: 10s       # Allow up to 10s for Spring Boot to respond
+      retries: 3         # Mark unhealthy after 3 consecutive failures
+      start_period: 40s  # Give Spring Boot 40s to start before health checks begin
+    # No 'ports:' entry — backend is intentionally NOT accessible from the host.
+    # All traffic must go through the load balancer (NFR-4: Network Isolation).
+
+  # ── UI: Nginx Static File Server ───────────────────────────────────────────
+  # Serves the static frontend files (HTML, JS, CSS) for the BidTech application.
+  # Files are baked into the image at build time from src/main/resources/static/.
+  # NOT exposed to the host — only reachable via the load balancer on port 80.
+  ui:
+    build:
+      context: .
+      dockerfile: Dockerfile.ui   # Uses nginx:alpine, serves files on port 3000
+    image: bidtech-ui:latest
+    container_name: bidtech-ui
+    networks:
+      - bidtech-network
+    restart: unless-stopped
+    healthcheck:
+      # Use curl to check Nginx is serving on port 3000.
+      # curl is available in nginx:alpine; wget is not in all versions.
+      # -f makes curl return exit code 1 on HTTP errors (4xx/5xx).
+      # -s suppresses progress output. --max-time 3 prevents hanging.
+      test: ["CMD", "curl", "-f", "-s", "--max-time", "3",
+             "http://localhost:3000/"]
+      interval: 30s      # Check every 30 seconds
+      timeout: 5s        # Nginx responds fast — 5s is generous for a static file server
+      retries: 3         # Mark unhealthy after 3 consecutive failures
+      start_period: 10s  # Nginx starts almost instantly — 10s is more than enough
+    # No 'ports:' entry — UI is intentionally NOT accessible from the host.
+
+  # ── Load Balancer: Nginx Reverse Proxy ─────────────────────────────────────
+  # The single entry point for all user traffic.
+  # Routes /api/*, /auction/*, /payment/*, /users/* to the backend.
+  # Routes everything else (/*) to the UI container.
+  # This is the ONLY service with a published port (80:80).
+  loadbalancer:
+    image: nginx:alpine   # No custom build needed — config is mounted at runtime
+    container_name: bidtech-loadbalancer
+    ports:
+      - "80:80"   # Only host-exposed port in the entire stack — users access http://localhost
+    networks:
+      - bidtech-network
+    volumes:
+      # Mount the routing config as read-only — prevents accidental runtime modification.
+      # The config defines upstream blocks and location routing rules.
+      - ./nginx/loadbalancer.conf:/etc/nginx/conf.d/default.conf:ro
+    restart: unless-stopped
+    # depends_on with service_healthy ensures the load balancer only starts AFTER
+    # both backend and ui have passed their health checks. Without this, Nginx
+    # could start before the upstreams are ready and return 502 Bad Gateway errors.
+    depends_on:
+      backend:
+        condition: service_healthy
+      ui:
+        condition: service_healthy
+    healthcheck:
+      # Health check goes through the load balancer itself (port 80) to verify
+      # the full routing chain works — not just that Nginx is running.
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider",
+             "http://localhost/api/catalogue/health"]
+      interval: 30s      # Check every 30 seconds
+      timeout: 10s       # Allow time for the proxy chain to respond
+      retries: 3         # Mark unhealthy after 3 consecutive failures
+      start_period: 60s  # Allow extra time since this depends on backend being ready
