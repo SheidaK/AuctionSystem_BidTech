@@ -70,18 +70,6 @@ http://localhost
 ./scripts/start.ps1
 ```
 
-### View logs
-
-```powershell
-docker compose logs -f
-```
-
-### Full reset (⚠️ deletes all data)
-
-```powershell
-docker compose down -v
-```
-
 ---
 
 ## 🗂️ Services
