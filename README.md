@@ -7,6 +7,7 @@ First deploy (or after any code change):
 Stop:
 
 ./scripts/stop.ps1
+
 Start again (no rebuild):
 
 ./scripts/start.ps1
