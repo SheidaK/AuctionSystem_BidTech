@@ -128,7 +128,7 @@ public class AuctionController {
         return auctionService.endAuction(auctionId);
     }
 
-    @GetMapping
+    @GetMapping("/all")
     public List<Auction> getAllAuctions() {
         return auctionService.getAllAuctions();
     }
