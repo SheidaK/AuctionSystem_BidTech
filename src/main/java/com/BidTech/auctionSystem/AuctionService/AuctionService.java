@@ -2,9 +2,13 @@ package com.BidTech.auctionSystem.AuctionService;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.stereotype.Service;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * AuctionService — core business logic for the Auction domain.
@@ -15,6 +19,9 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class AuctionService {
+
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
 
     /** Repository for persisting and retrieving {@link Auction} entities. */
     private final AuctionRepository auctionRepository;
@@ -88,6 +95,19 @@ public class AuctionService {
         auction.setHighestBidderId(userId);
         auctionRepository.save(auction);
 
+        Map<String, Object> event = new HashMap<>();
+        event.put("type", "BidPlaced");
+        event.put("auctionId", auctionId);
+        event.put("userId", userId);
+        event.put("amount", amount);
+
+        rabbitTemplate.convertAndSend(
+                "auction.events",
+                "bid.placed",
+                event
+        );
+
+
         return bid;
     }
 
@@ -152,6 +172,14 @@ public class AuctionService {
                 .orElseThrow(() -> new AuctionNotFoundException(auctionId));
 
         auction.endAuction();
+        Map<String, Object> event = new HashMap<>();
+        event.put("type", "AuctionEnded");
+        event.put("auctionId", auctionId);
+        event.put("winnerId", auction.getHighestBidderId());
+        event.put("finalPrice", auction.getHighestBid());
+
+        rabbitTemplate.convertAndSend("auction.events", "auction.ended", event);
         return auctionRepository.save(auction);
+
     }
 }

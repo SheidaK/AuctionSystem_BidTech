@@ -1,5 +1,6 @@
 package com.BidTech.auctionSystem.payment.service;
 
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -10,6 +11,9 @@ import com.BidTech.auctionSystem.IAMService.UserRepository;
 import com.BidTech.auctionSystem.payment.model.Payment;
 import com.BidTech.auctionSystem.payment.model.Receipt;
 import com.BidTech.auctionSystem.payment.repository.PaymentRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import java.util.Map;
+import java.util.HashMap;
 
 /**
  * PaymentService — business logic for processing payments and generating receipts.
@@ -28,6 +32,8 @@ import com.BidTech.auctionSystem.payment.repository.PaymentRepository;
  */
 @Service
 public class PaymentService {
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
 
     /** Repository for persisting and retrieving {@link Payment} entities. */
     @Autowired
@@ -93,6 +99,21 @@ public class PaymentService {
         payment.setReceiptUrl("/confirmation/" + transactionId);
 
         paymentRepository.save(payment);
+
+        // Publish event
+        Map<String, Object> event = new HashMap<>();
+        event.put("type", "PaymentCompleted");
+        event.put("auctionId", auctionId);
+        event.put("userId", userId);
+        event.put("transactionId", transactionId);
+        event.put("amount", amount);
+
+        rabbitTemplate.convertAndSend(
+                "auction.events",
+                "payment.completed",
+                event
+        );
+
         return transactionId;
     }
 
