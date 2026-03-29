@@ -58,8 +58,9 @@
             <div class="grid grid-cols-2 gap-4 mb-4">
                 <div>
                     <label class="block text-sm font-semibold text-gray-600 mb-1">Item ID (from Catalogue) *</label>
-                    <input type="number" id="createItemId" placeholder="e.g. 1"
-                        class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition">
+                    <select id="itemSelect"
+                             class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition">
+                    </select>
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-600 mb-1">Starting Price ($) *</label>
@@ -80,11 +81,6 @@
                 <div>
                     <label class="block text-sm font-semibold text-gray-600 mb-1">Auction ID *</label>
                     <input type="number" id="bidAuctionId" placeholder="e.g. 1"
-                        class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition">
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-600 mb-1">User ID *</label>
-                    <input type="number" id="bidUserId" placeholder="e.g. 3"
                         class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition">
                 </div>
             </div>
@@ -132,6 +128,20 @@
     </div>
 
 <script>
+    async function loadItems() {
+        const res = await fetch("api/catalogue/products"); // adjust if needed
+        const items = await res.json();
+
+        const dropdown = document.getElementById("itemSelect");
+        dropdown.innerHTML = "";
+
+        items.forEach(item => {
+            const option = document.createElement("option");
+            option.value = item.id;
+            option.textContent = `${item.name} ($${item.price})`;
+            dropdown.appendChild(option);
+        });
+    }
     // All API calls use relative URLs — routed through the Nginx load balancer.
     // The load balancer proxies /auction/* to the Spring Boot backend on port 8080.
 
@@ -172,7 +182,7 @@
 
     /** Creates a new auction via POST /auction/create. @returns {Promise<void>} */
     async function createAuction() {
-        const itemId = document.getElementById('createItemId').value;
+        const itemId = document.getElementById('itemSelect').value;
         const price  = document.getElementById('createStartingPrice').value;
         if (!itemId || !price) { showResult('createResult', 'Please fill in both fields.', 'error'); return; }
         try {
@@ -186,9 +196,10 @@
     /** Places a bid via POST /auction/{id}/bid. @returns {Promise<void>} */
     async function placeBid() {
         const auctionId = document.getElementById('bidAuctionId').value;
-        const userId    = document.getElementById('bidUserId').value;
+        const user = JSON.parse(localStorage.getItem("user"));
+        const userId = user.id;
         const amount    = document.getElementById('bidAmount').value;
-        if (!auctionId || !userId || !amount) { showResult('bidResult', 'Please fill in all fields.', 'error'); return; }
+        if (!auctionId || !amount) { showResult('bidResult', 'Please enter auction ID and bid amount.', 'error'); return; }
         try {
             const res = await fetch(`/auction/${auctionId}/bid?userId=${userId}&amount=${amount}`, { method: 'POST' });
             if (!res.ok) { const m = await res.text(); throw new Error(m || `HTTP ${res.status}`); }
@@ -276,6 +287,7 @@
             window.location.href = '/login.html';
         }
     }
+    loadItems();
 
     function logout() {
         // Clear stored session
