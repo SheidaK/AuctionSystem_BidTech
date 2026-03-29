@@ -181,5 +181,10 @@ public class AuctionService {
         rabbitTemplate.convertAndSend("auction.events", "auction.ended", event);
         return auctionRepository.save(auction);
 
+
+
+    }
+    public List<Auction> getAllAuctions() {
+        return auctionRepository.findAll();
     }
 }

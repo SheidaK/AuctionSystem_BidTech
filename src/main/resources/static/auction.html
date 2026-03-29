@@ -80,8 +80,10 @@
             <div class="grid grid-cols-2 gap-4 mb-4">
                 <div>
                     <label class="block text-sm font-semibold text-gray-600 mb-1">Auction ID *</label>
-                    <input type="number" id="bidAuctionId" placeholder="e.g. 1"
-                        class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition">
+                    <select id="bidAuctionId"
+                            class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition">
+                        <option value="">Select Auction</option>
+                    </select>
                 </div>
             </div>
             <div class="mb-4">
@@ -128,6 +130,26 @@
     </div>
 
 <script>
+    async function loadAuctions() {
+        try {
+            const res = await fetch('/auction');
+            const auctions = await res.json();
+
+            const dropdown = document.getElementById('bidAuctionId');
+            dropdown.innerHTML = '<option value="">Select Auction</option>';
+
+            auctions.forEach(a => {
+                const option = document.createElement('option');
+                option.value = a.id;
+                option.textContent = `Auction ${a.id} (Item ${a.itemId})`;
+                dropdown.appendChild(option);
+            });
+
+        } catch (err) {
+            console.error("Failed to load auctions", err);
+        }
+    }
+
     async function loadItems() {
         const res = await fetch("api/catalogue/products"); // adjust if needed
         const items = await res.json();
@@ -190,6 +212,7 @@
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const d = await res.json();
             showResult('createResult', `✅ Auction created! ID: ${d.id} | Item: ${d.itemId} | Starting bid: $${d.highestBid} | Ends: ${new Date(d.endTime).toLocaleString()}`, 'success');
+            loadAuctions();
         } catch (err) { showResult('createResult', `❌ ${err.message}`, 'error'); }
     }
 
@@ -303,6 +326,7 @@
         window.location.href = '/login.html';
     }
     checkLogin();
+    loadAuctions();
 </script>
 </body>
 </html>

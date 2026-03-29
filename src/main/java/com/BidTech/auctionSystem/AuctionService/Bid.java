@@ -118,4 +118,7 @@ public class Bid {
     public LocalDateTime getTimestamp() {
         return timestamp;
     }
+    public Long getId() {
+        return id;
+    }
 }
