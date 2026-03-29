@@ -132,7 +132,7 @@
 <script>
     async function loadAuctions() {
         try {
-            const res = await fetch('/auction');
+            const res = await fetch('/auction/all');
             const auctions = await res.json();
 
             const dropdown = document.getElementById('bidAuctionId');
@@ -151,7 +151,7 @@
     }
 
     async function loadItems() {
-        const res = await fetch("api/catalogue/products"); // adjust if needed
+        const res = await fetch("/api/catalogue/products"); // adjust if needed
         const items = await res.json();
 
         const dropdown = document.getElementById("itemSelect");
@@ -288,19 +288,41 @@
                 </table>`;
         } catch (err) { showResult('queryResult', `❌ ${err.message}`, 'error'); }
     }
-
     /** Ends an auction via POST /auction/{id}/end. @returns {Promise<void>} */
     async function endAuction() {
+        const user = JSON.parse(localStorage.getItem("user"));
+
+        if (!user || user.role !== "ADMIN") {
+            showResult('endResult', '❌ Only admins can end auctions.', 'error');
+            return;
+        }
+
         const id = document.getElementById('endAuctionId').value;
-        if (!id) { showResult('endResult', 'Please enter an Auction ID.', 'error'); return; }
+        if (!id) {
+            showResult('endResult', 'Please enter an Auction ID.', 'error');
+            return;
+        }
+
         if (!confirm(`End auction #${id}? This cannot be undone.`)) return;
+
         try {
-            const res = await fetch(`/auction/${id}/end`, { method: 'POST' });
+            const res = await fetch(`/auction/${id}/end?userId=${user.id}`, {
+                method: 'POST'
+            });
+
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
             const d = await res.json();
-            const winner = d.highestBidderId ? `Winner: User #${d.highestBidderId} with $${d.highestBid}` : 'No bids were placed.';
+
+            const winner = d.highestBidderId
+                ? `Winner: User #${d.highestBidderId} with $${d.highestBid}`
+                : 'No bids were placed.';
+
             showResult('endResult', `🏁 Auction #${d.id} ended. ${winner}`, 'success');
-        } catch (err) { showResult('endResult', `❌ ${err.message}`, 'error'); }
+
+        } catch (err) {
+            showResult('endResult', `❌ ${err.message}`, 'error');
+        }
     }
     function checkLogin() {
         const user = localStorage.getItem('user');
