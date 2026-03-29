@@ -1,0 +1,254 @@
+<!DOCTYPE html> 
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login — BidTech</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+    body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .input {
+        width: 100%;
+        padding: 10px;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+    }
+    .input:focus { border-color: #667eea; outline: none; }
+</style>
+
+</head>
+
+<body class="min-h-screen flex items-center justify-center font-sans">
+
+<div class="w-full max-w-md bg-white rounded-xl shadow-xl overflow-hidden">
+
+<div class="bg-indigo-600 text-white text-center py-6">
+    <h1 class="text-2xl font-bold">🔐 Login</h1>
+</div>
+
+<div class="p-6 space-y-4">
+
+<input id="username" placeholder="Username" class="input">
+<input id="password" type="password" placeholder="Password" class="input">
+
+<button onclick="login()" class="w-full bg-indigo-600 text-white py-2 rounded-lg">
+    Login
+</button>
+
+<button onclick="toggleReset()" class="text-sm text-indigo-600 underline w-full">
+    Forgot Password?
+</button>
+
+<div id="msg" class="hidden text-sm p-2 rounded"></div>
+
+<!-- RESET -->
+<div id="resetBox" class="hidden border-t pt-4">
+    <input id="resetUser" placeholder="Username" class="input mb-2">
+    <input id="resetPass" type="password" placeholder="New Password" class="input mb-2">
+
+    <button onclick="resetPassword()" class="w-full bg-green-600 text-white py-2 rounded">
+        Reset Password
+    </button>
+</div>
+
+<!-- ✅ REGISTER LINK (ADDED) -->
+<div class="text-center text-sm text-gray-500 pt-4 border-t">
+    Don’t have an account?
+    <a href="/register.html" class="text-indigo-600 font-semibold hover:underline">
+        Register here
+    </a>
+</div>
+
+</div>
+
+</div>
+
+<script>
+function show(text, ok=false) {
+    const msg = document.getElementById("msg");
+    msg.className = "text-sm p-2 rounded " + (ok ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700");
+    msg.innerText = text;
+    msg.classList.remove("hidden");
+}
+
+/* LOGIN */
+async function login() {
+    const username = document.getElementById("username").value.trim();
+    const password = document.getElementById("password").value.trim();
+
+    if (!username || !password) {
+        show("Enter username and password");
+        return;
+    }
+
+    try {
+        const res = await fetch(`/users/usernames/${encodeURIComponent(username)}`);
+
+        if (!res.ok) {
+            show("User not found");
+            return;
+        }
+
+        const user = await res.json();
+
+        if (!user || !user.password) {
+            show("User not found");
+            return;
+        }
+
+        if (user.password !== password) {
+            show("Wrong password");
+            return;
+        }
+
+        localStorage.setItem("user", JSON.stringify(user));
+
+        show("Login successful!", true);
+
+        setTimeout(() => {
+            window.location.href = "/index.html";
+        }, 700);
+
+    } catch (err) {
+        show("Server error");
+        console.error(err);
+    }
+}
+
+/* RESET */
+async function resetPassword() {
+    const user = document.getElementById("resetUser").value;
+    const pass = document.getElementById("resetPass").value;
+
+    if (!user || !pass) {
+        show("Fill all reset fields");
+        return;
+    }
+
+    try {
+        const res = await fetch(`/users/reset-password/${encodeURIComponent(user)}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ password: pass })
+        });
+
+        if (!res.ok) {
+            show("Reset failed");
+            return;
+        }
+
+        show("Password updated!", true);
+
+    } catch (err) {
+        show("Error resetting password");
+    }
+}
+
+function toggleReset() {
+    document.getElementById("resetBox").classList.toggle("hidden");
+}
+</script>
+
+</body>
+</html>
+
+
+
+</div>
+
+<script>
+function show(text, ok=false) {
+    const msg = document.getElementById("msg");
+    msg.className = "text-sm p-2 rounded " + (ok ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700");
+    msg.innerText = text;
+    msg.classList.remove("hidden");
+}
+
+/* LOGIN */
+async function login() {
+    const username = document.getElementById("username").value.trim();
+    const password = document.getElementById("password").value.trim();
+
+    if (!username || !password) {
+        show("Enter username and password");
+        return;
+    }
+
+    try {
+        const res = await fetch(`/users/usernames/${encodeURIComponent(username)}`);
+
+        if (!res.ok) {
+            show("User not found");
+            return;
+        }
+
+        const user = await res.json();
+
+        if (!user) {
+            show("User not found");
+            return;
+        }
+        if (!user.password) {
+            show("User password is not found");
+            return;
+        }
+
+        if (user.password !== password) {
+            show("Wrong password");
+            return;
+        }
+
+        // Save session (frontend only)
+        localStorage.setItem("user", JSON.stringify(user));
+
+        show("Login successful!", true);
+
+        setTimeout(() => {
+            window.location.href = "/index.html";
+        }, 700);
+
+    } catch (err) {
+        show("Server error");
+        console.error(err);
+    }
+}
+
+/* RESET */
+async function resetPassword() {
+    const user = document.getElementById("resetUser").value;
+    const pass = document.getElementById("resetPass").value;
+
+    if (!user || !pass) {
+        show("Fill all reset fields");
+        return;
+    }
+
+    try {
+        const res = await fetch(`/users/reset-password/${encodeURIComponent(user)}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ password: pass })
+        });
+
+        if (!res.ok) {
+            show("Reset failed");
+            return;
+        }
+
+        show("Password updated!", true);
+
+    } catch (err) {
+        show("Error resetting password");
+    }
+}
+
+function toggleReset() {
+    document.getElementById("resetBox").classList.toggle("hidden");
+}
+</script>
+
+</body>
+</html>

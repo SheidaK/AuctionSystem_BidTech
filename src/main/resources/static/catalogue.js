@@ -2,11 +2,34 @@
 // on whatever host/port the page was served from (e.g. http://localhost:80).
 // Using an absolute URL like 'http://localhost:8080' would bypass the load
 // balancer and fail in Docker where port 8080 is not exposed to the host.
+function checkLogin() {
+    const user = localStorage.getItem('user');
+
+    if (!user) {
+        // Not logged in → redirect
+        window.location.href = '/login.html';
+    }
+}
+
+function logout() {
+    // Clear stored session
+    localStorage.clear();
+
+    // Optional: inform backend to destroy session
+    fetch('/logout', {
+        method: 'POST',
+        credentials: 'include'
+    });
+
+    // Redirect to login page
+    window.location.href = '/login.html';
+}
 const API_BASE = '/api/catalogue';
 
 // Load products on page load
 document.addEventListener('DOMContentLoaded', () => {
-    loadProducts();
+	checkLogin();
+	loadProducts();
     
     // Add event listeners
     document.getElementById('searchInput').addEventListener('input', filterProducts);

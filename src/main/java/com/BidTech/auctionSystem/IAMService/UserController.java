@@ -77,4 +77,16 @@ public class UserController {
 	            })
 	            	.orElse(ResponseEntity.notFound().build());
 	}
+	 @GetMapping("/users/check-username/{userName}")
+	    public Map<String, Boolean> checkUsername(@PathVariable String userName) {
+	        boolean exists = repository.findByUserName(userName).isPresent();
+	        return Map.of("exists", exists);
+	    }
+
+	    // --- Check if email exists (for frontend validation) ---
+	    @GetMapping("/users/check-email/{email}")
+	    public Map<String, Boolean> checkEmail(@PathVariable String email) {
+	        boolean exists = repository.findByEmail(email).isPresent();
+	        return Map.of("exists", exists);
+	    }
 }

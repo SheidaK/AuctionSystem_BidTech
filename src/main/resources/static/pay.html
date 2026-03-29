@@ -25,6 +25,9 @@
             <a href="/auction.html" class="text-white/85 px-4 py-4 text-sm font-medium rounded hover:bg-white/15 transition">🔨 Auction</a>
             <a href="/users.html"   class="text-white/85 px-4 py-4 text-sm font-medium rounded hover:bg-white/15 transition">👤 Users</a>
             <a href="/pay.html"     class="text-white bg-white/20 px-4 py-4 text-sm font-medium rounded hover:bg-white/30 transition">💳 Payment</a>
+            <button onclick="logout()" class="text-white px-4 py-2 hover:bg-white/20 rounded">
+    🚪 Logout
+</button>
         </div>
     </nav>
 
@@ -276,6 +279,29 @@
             document.getElementById('receiptCard').classList.remove('hidden');
         } catch (err) { showResult('receiptResult', `❌ ${err.message}`, 'error'); }
     }
+    function checkLogin() {
+        const user = localStorage.getItem('user');
+
+        if (!user) {
+            // Not logged in → redirect
+            window.location.href = '/login.html';
+        }
+    }
+
+    function logout() {
+        // Clear stored session
+        localStorage.clear();
+
+        // Optional: inform backend to destroy session
+        fetch('/logout', {
+            method: 'POST',
+            credentials: 'include'
+        });
+
+        // Redirect to login page
+        window.location.href = '/login.html';
+    }
+    checkLogin();
 </script>
 </body>
 </html>
