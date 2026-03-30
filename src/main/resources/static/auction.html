@@ -114,12 +114,16 @@
             const dropdown = document.getElementById('bidAuctionId');
             dropdown.innerHTML = '<option value="">Select Auction</option>';
 
-            auctions.forEach(a => {
+            for (const a of auctions) {
+                // fetch product details
+                const productRes = await fetch(`/api/catalogue/products/${a.itemId}`);
+                const product = await productRes.json();
+
                 const option = document.createElement('option');
                 option.value = a.id;
-                option.textContent = `Auction ${a.id} (Item ${a.itemId})`;
+                option.textContent = product.name; //  SHOW NAME
                 dropdown.appendChild(option);
-            });
+            }
 
         } catch (err) {
             console.error("Failed to load auctions", err);
@@ -264,7 +268,7 @@
             const d = await res.json();
 
             const winner = d.highestBidderId
-                ? `Winner: User #${d.highestBidderId} with $${d.highestBid}`
+                ? `Winner: User #${d.highestBidderId} with $${d.highestBid || 0}`
                 : 'No bids were placed.';
 
             showResult('endResult', `🏁 Auction #${d.id} ended. ${winner}`, 'success');

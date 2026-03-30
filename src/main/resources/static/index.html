@@ -287,7 +287,7 @@
                             <span class="font-semibold text-gray-600">Status</span>
                             <span class="px-3 py-0.5 rounded-full text-xs font-semibold ${badgeClass[p.status]||'bg-gray-100 text-gray-600'}">${p.status}</span>
                         </div>
-                        ${p.status === 'DRAFT' || p.status === 'INACTIVE' ? `
+                        ${p.status === 'ACTIVE' ? `
 <div class="flex gap-3 justify-end pt-3">
     <button onclick="activateProduct(${p.id})"
         class="px-4 py-2 bg-brand text-white text-sm font-semibold rounded-lg">
@@ -299,7 +299,7 @@
         Delete
     </button>
 
-    <button onclick="createAuctionFromProduct(${p.id}, ${p.startingPrice})"
+    <button onclick="createAuctionFromProduct(${p.id}, ${p.startingPrice}, '${p.name}')"
         id="createAuctionBtn"
         class="px-4 py-2 bg-purple-600 text-white text-sm font-semibold rounded-lg">
         Create Auction
@@ -322,7 +322,7 @@
             localStorage.clear();
             window.location.href = '/login.html';
         }
-        async function createAuctionFromProduct(productId, startingPrice) {
+        async function createAuctionFromProduct(productId, startingPrice, productName) {
             const user = JSON.parse(localStorage.getItem("user"));
 
             if (!user || user.role !== "ADMIN") {
@@ -339,7 +339,7 @@
 
                 const data = await res.json();
 
-                alert(`Auction created! ID: ${data.id}`);
+                alert(`Auction created for "${productName}"`);
 
                 // go to auction page
                 window.location.href = "/auction.html";
