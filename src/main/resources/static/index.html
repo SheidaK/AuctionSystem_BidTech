@@ -298,6 +298,15 @@
                 alert('Error loading product details');
             }
         }
+
+        // Logout — clears all session data and redirects to login page
+        function logout() {
+            localStorage.clear();
+            window.location.href = '/login.html';
+        }
     </script>
+
+<!-- chat-widget.js injects the floating chatbot button and panel. -->
+<script src="chat-widget.js"></script>
 </body>
 </html>

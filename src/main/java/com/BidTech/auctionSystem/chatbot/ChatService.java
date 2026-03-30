@@ -31,8 +31,9 @@ public class ChatService {
     /** Ollama API endpoint — uses Docker service name, not localhost */
     private static final String OLLAMA_URL = "http://ollama:11434/api/chat";
 
-    /** Model name to use — must be pulled via 'ollama pull llama3.2' in deploy.ps1 */
-    private static final String MODEL = "llama3.2";
+    /** Model name to use — read from OLLAMA_MODEL env var, defaults to llama3.2 */
+    @org.springframework.beans.factory.annotation.Value("${OLLAMA_MODEL:llama3.2}")
+    private String model;
 
     @Autowired
     private IntentResolver intentResolver;
@@ -49,7 +50,7 @@ public class ChatService {
 
     /**
      * System prompt for unauthenticated visitors.
-     * No live data is included — visitors can only ask general questions.
+     * Strict anti-hallucination rules — no live data, no made-up products.
      */
     private static final String VISITOR_SYSTEM_PROMPT =
         "You are a helpful assistant for BidTech, an online auction platform. " +
@@ -58,135 +59,199 @@ public class ChatService {
         "how long auctions last, and similar topics. " +
         "If the user asks about specific live data (auctions, bids, products, payments), " +
         "tell them they need to log in to access that information. " +
+        "CRITICAL RULE: NEVER make up product names, prices, auction details, or any data. " +
+        "If you don't have the information, say so honestly. " +
         "Keep responses concise and friendly.";
 
     /**
      * System prompt template for authenticated users.
-     * The {liveData} placeholder is replaced with fetched data before calling Ollama.
+     * Includes strict anti-hallucination rules and rephrase guidance.
      */
     private static final String AUTH_SYSTEM_PROMPT_TEMPLATE =
         "You are a helpful assistant for BidTech, an online auction platform. " +
         "The user is authenticated (userId: {userId}). " +
-        "You can help the user interact with the platform using natural language. " +
-        "Available actions you can perform on their behalf (with confirmation): " +
-        "- Place a bid: say something like 'bid $X on auction Y' " +
-        "- Process a payment: say something like 'pay for auction Y' " +
-        "Live data retrieved for this query:\n{liveData}\n" +
-        "Answer the user's question using only the data above. Do not invent data. " +
-        "After performing an action, explain what you did in plain English.";
+        "\n\nCRITICAL RULES — YOU MUST FOLLOW THESE:\n" +
+        "1. ONLY use the live data provided below to answer questions about products, auctions, bids, and payments.\n" +
+        "2. NEVER invent, fabricate, or hallucinate product names, prices, auction details, or any data.\n" +
+        "3. If the live data below does not contain what the user is asking about, say: " +
+        "\"Based on our current catalogue, I don't see that item. Here's what we currently have available:\" " +
+        "and then list what IS in the data.\n" +
+        "4. If you cannot answer the question with the data provided, suggest the user rephrase their question. " +
+        "Offer specific rephrasing examples like:\n" +
+        "   - \"Show me all products\" to see the full catalogue\n" +
+        "   - \"What's the highest bid on auction 1?\" for auction details\n" +
+        "   - \"How much time is left on auction 2?\" for remaining time\n" +
+        "   - \"Bid $200 on auction 3\" to place a bid\n" +
+        "   - \"What should I bid to win auction 1?\" for bid recommendations\n" +
+        "\n\nAvailable actions you can perform on their behalf (with confirmation):\n" +
+        "- Place a bid: say something like 'bid $X on auction Y'\n" +
+        "- Process a payment: say something like 'pay for auction Y'\n" +
+        "\nLive data retrieved for this query:\n{liveData}\n\n" +
+        "Answer the user's question using ONLY the live data above. " +
+        "If the data says there are no matching items, tell the user honestly — do not make up alternatives.";
+
+    /** Human agent handoff message — returned for any non-auction-search request */
+    private static final String HUMAN_AGENT_MSG =
+        "I can only help with searching auctions and products right now. " +
+        "For anything else, let me connect you with a human agent who can assist you. 🧑‍💼\n\n" +
+        "You can try asking me things like:\n" +
+        "• \"Show me all products\"\n" +
+        "• \"Any laptops in auction?\"\n" +
+        "• \"Show me electronics\"\n" +
+        "• \"What's the highest bid on auction 1?\"\n" +
+        "• \"How much time is left on auction 2?\"";
+
+    /** System prompt for keyword extraction — Ollama returns ONLY search keywords, nothing else */
+    private static final String KEYWORD_EXTRACTION_PROMPT =
+        "You are a keyword extractor for an auction search system. " +
+        "The user is looking for products or auctions. " +
+        "Your ONLY job is to extract 1-3 search keywords from the user's message. " +
+        "Return ONLY the keywords separated by commas. No sentences, no explanations, no data. " +
+        "Examples:\n" +
+        "  User: 'any laptop in auction?' → laptop\n" +
+        "  User: 'dell laptop under 1000' → dell,laptop\n" +
+        "  User: 'show me watches' → watch\n" +
+        "  User: 'I want a vintage rolex' → vintage,rolex\n" +
+        "  User: 'electronics for sale' → electronics\n" +
+        "  User: 'any cameras available?' → camera\n" +
+        "  User: 'show me all products' → all\n" +
+        "  User: 'what do you have?' → all\n" +
+        "Return ONLY keywords. Nothing else.";
 
     /**
-     * Processes a chat request and returns the assistant's response string.
-     *
-     * @param request the incoming chat request from the browser widget
-     * @return the assistant's response text, or a friendly error message if Ollama is unavailable
+     * Processes a chat request. For auction search intents, uses Ollama ONLY to extract
+     * search keywords, then queries the database and returns results directly.
+     * Ollama never generates the user-facing response for search queries.
      */
     public String processChat(ChatRequest request) {
         String message = request.getMessage();
         Long userId = request.getUserId();
         boolean isAuthenticated = userId != null;
 
-        // ── Visitor mode ──────────────────────────────────────────────────────
-        // Unauthenticated users get the general system prompt with no live data.
-        // We still call Ollama so the model can answer general platform questions.
+        // ── Visitor mode — prompt to log in for search, general Q&A via Ollama ──
         if (!isAuthenticated) {
-            // Check if the visitor is asking about live data — if so, prompt to log in
             IntentResolver.ResolvedIntent resolved = intentResolver.resolve(message, false);
-            if (isLiveDataIntent(resolved.getIntent())) {
-                // Return a canned response without calling Ollama — no need to waste a model call
-                return "To access live auction data, products, and payments, " +
-                    "please log in first. You can register at /users.html.";
+            if (isAuctionSearchIntent(resolved.getIntent())) {
+                return "To search auctions and products, please log in first. " +
+                    "You can register at the Users page. 🔐";
             }
             return callOllama(VISITOR_SYSTEM_PROMPT, request.getHistory(), message);
         }
 
-        // ── Authenticated mode — confirmed write action ───────────────────────
-        // The user previously saw a confirmation prompt and clicked "Confirm".
-        // Execute the pending write action and report the result.
-        if (request.isConfirmed() && request.getPendingIntent() != null) {
-            return executeConfirmedAction(request);
-        }
-
-        // ── Authenticated mode — resolve intent ───────────────────────────────
+        // ── Authenticated mode — resolve intent ──
         IntentResolver.ResolvedIntent resolved = intentResolver.resolve(message, true);
         Intent intent = resolved.getIntent();
         Map<String, String> params = resolved.getParams();
 
-        // ── AMBIGUOUS: ask for clarification without calling Ollama ───────────
-        // When the intent is unclear, return the clarification question directly.
-        // This avoids wasting an Ollama call on an unanswerable question.
+        // ── Non-search intents → human agent ──
+        if (!isAuctionSearchIntent(intent)) {
+            return HUMAN_AGENT_MSG;
+        }
+
+        // ── AMBIGUOUS → ask for clarification ──
         if (intent == Intent.AMBIGUOUS) {
             return resolved.getClarificationQuestion();
         }
 
-        // ── Write intents: return confirmation prompt ─────────────────────────
-        // We never execute write actions without explicit user confirmation.
-        // Return a confirmation message; the widget will show Confirm/Cancel buttons.
-        if (intent == Intent.PLACE_BID) {
-            String auctionId = params.getOrDefault("auctionId", "?");
-            String amount    = params.getOrDefault("amount", "?");
-            return String.format(
-                "CONFIRM_ACTION|PLACE_BID|%s|%s|" +
-                "I can place a bid of $%s on auction #%s for you. " +
-                "Please confirm to proceed.",
-                auctionId, amount, amount, auctionId);
-        }
-        if (intent == Intent.PROCESS_PAYMENT) {
-            String auctionId = params.getOrDefault("auctionId", "?");
-            String amount    = params.getOrDefault("amount", "?");
-            return String.format(
-                "CONFIRM_ACTION|PROCESS_PAYMENT|%s|%s|" +
-                "I can process a payment of $%s for auction #%s. " +
-                "Please confirm to proceed.",
-                auctionId, amount, amount, auctionId);
+        // ── Auction-specific intents (status, highest bid, etc.) → direct DB result ──
+        if (intent != Intent.SEARCH_PRODUCTS && intent != Intent.LIST_ACTIVE_PRODUCTS
+                && intent != Intent.GET_PRODUCT_BY_CATEGORY) {
+            // These intents already have params extracted by IntentResolver — no Ollama needed
+            return fetchLiveData(intent, params, userId);
         }
 
-        // ── Read intents: fetch live data and inject into prompt ──────────────
-        String liveData = fetchLiveData(intent, params, userId);
-        String systemPrompt = AUTH_SYSTEM_PROMPT_TEMPLATE
-            .replace("{userId}", userId.toString())
-            .replace("{liveData}", liveData);
+        // ── Search intents → use Ollama ONLY for keyword extraction ──────────
+        // Step 1: Ask Ollama to extract search keywords from the user's message.
+        //         Ollama returns ONLY keywords like "laptop" or "dell,laptop" — no prose.
+        String keywords = extractKeywordsViaOllama(request.getHistory(), message);
 
-        return callOllama(systemPrompt, request.getHistory(), message);
+        // Step 2: Use the extracted keywords to query the catalogue database.
+        //         If Ollama returned "all", fetch the full catalogue.
+        //         Otherwise, search by each keyword and combine results.
+        if (keywords == null || keywords.isBlank() || keywords.trim().equalsIgnoreCase("all")) {
+            return "📦 Here are all available products:\n\n" + actionExecutor.fetchActiveProducts();
+        }
+
+        // Search with each keyword and collect results
+        String[] keywordList = keywords.split(",");
+        StringBuilder allResults = new StringBuilder();
+        boolean foundAny = false;
+
+        for (String kw : keywordList) {
+            String trimmed = kw.trim().toLowerCase();
+            if (trimmed.isEmpty()) continue;
+
+            // Check if it's a category name first
+            String[] categories = {"electronics", "jewelry", "art", "books", "other"};
+            boolean isCategory = false;
+            for (String cat : categories) {
+                if (trimmed.equals(cat)) {
+                    String catResult = actionExecutor.fetchProductsByCategory(
+                        cat.substring(0, 1).toUpperCase() + cat.substring(1));
+                    if (!catResult.contains("No products found")) {
+                        allResults.append(catResult).append("\n");
+                        foundAny = true;
+                    }
+                    isCategory = true;
+                    break;
+                }
+            }
+
+            // If not a category, do a keyword search by name/description
+            if (!isCategory) {
+                var results = actionExecutor.searchProducts(trimmed);
+                if (!results.contains("No products found")) {
+                    allResults.append(results).append("\n");
+                    foundAny = true;
+                }
+            }
+        }
+
+        // Step 3: Return the database results directly — no Ollama in the response path
+        if (foundAny) {
+            return "🔍 Here are the results:\n\n" + allResults.toString().trim();
+        } else {
+            return "No auctions currently available matching your search. " +
+                "Try asking \"show me all products\" to see the full catalogue.";
+        }
     }
 
     /**
-     * Executes a previously confirmed write action (PLACE_BID or PROCESS_PAYMENT).
-     * Called when the request has confirmed=true and a pendingIntent set.
-     *
-     * @param request the confirmed request with pendingIntent and pendingParams
-     * @return a plain-English result string from ActionExecutor, then passed to Ollama
+     * Calls Ollama with the keyword extraction prompt to get search keywords from the user's message.
+     * Returns ONLY the keywords (e.g. "laptop" or "dell,laptop") — no prose.
+     * Falls back to null if Ollama is unavailable.
      */
-    private String executeConfirmedAction(ChatRequest request) {
-        String pendingIntent = request.getPendingIntent();
-        Map<String, String> params = request.getPendingParams();
-        Long userId = request.getUserId();
-
-        String actionResult;
-
-        if ("PLACE_BID".equals(pendingIntent)) {
-            // Extract auctionId and amount from the stored pending params
-            Long auctionId = Long.parseLong(params.getOrDefault("auctionId", "0"));
-            double amount  = Double.parseDouble(params.getOrDefault("amount", "0"));
-            actionResult = actionExecutor.placeBid(auctionId, userId, amount);
-
-        } else if ("PROCESS_PAYMENT".equals(pendingIntent)) {
-            Long auctionId = Long.parseLong(params.getOrDefault("auctionId", "0"));
-            double amount  = Double.parseDouble(params.getOrDefault("amount", "0"));
-            actionResult = actionExecutor.processPayment(auctionId, userId, amount);
-
-        } else {
-            // Unknown pending intent — should not happen in normal flow
-            return "I couldn't find the action to confirm. Please try again.";
+    private String extractKeywordsViaOllama(List<ChatMessage> history, String userMessage) {
+        try {
+            String raw = callOllama(KEYWORD_EXTRACTION_PROMPT, history, userMessage);
+            if (raw == null) return null;
+            // Clean up — Ollama might add quotes, periods, or extra whitespace
+            return raw.replaceAll("[\"'.]", "").trim();
+        } catch (Exception e) {
+            // Ollama unavailable — fall back to null (will show full catalogue)
+            return null;
         }
+    }
 
-        // Inject the action result into the system prompt so Ollama can explain
-        // what happened in a natural, conversational way
-        String systemPrompt = AUTH_SYSTEM_PROMPT_TEMPLATE
-            .replace("{userId}", userId.toString())
-            .replace("{liveData}", "Action result: " + actionResult);
-
-        return callOllama(systemPrompt, request.getHistory(), request.getMessage());
+    /**
+     * Returns true if the intent is an auction/product search intent that the chatbot handles.
+     * All other intents (payments, write actions, general questions) get the human agent message.
+     */
+    private boolean isAuctionSearchIntent(Intent intent) {
+        switch (intent) {
+            case LIST_ACTIVE_PRODUCTS:
+            case SEARCH_PRODUCTS:
+            case GET_PRODUCT_BY_CATEGORY:
+            case GET_AUCTION_STATUS:
+            case GET_HIGHEST_BID:
+            case GET_REMAINING_TIME:
+            case GET_BID_HISTORY:
+            case GET_BID_RECOMMENDATION:
+            case AMBIGUOUS:  // Ambiguous within auction context — we'll ask for clarification
+                return true;
+            default:
+                return false;
+        }
     }
 
     /**
@@ -201,6 +266,12 @@ public class ChatService {
         switch (intent) {
             case LIST_ACTIVE_PRODUCTS:
                 return actionExecutor.fetchActiveProducts();
+
+            case SEARCH_PRODUCTS:
+                // Keyword-based search — uses the catalogue's JPQL search query
+                // to find products matching the extracted keyword by name or description
+                return actionExecutor.searchProducts(
+                    params.getOrDefault("keyword", ""));
 
             case GET_PRODUCT_BY_CATEGORY:
                 return actionExecutor.fetchProductsByCategory(
@@ -237,8 +308,11 @@ public class ChatService {
                     Long.parseLong(params.getOrDefault("paymentId", "0")));
 
             default:
-                // GENERAL_QUESTION — no live data needed, Ollama answers from system prompt
-                return "No specific live data required for this question.";
+                // GENERAL_QUESTION — still inject active products so Ollama has real data
+                // to reference instead of hallucinating. This is the key anti-hallucination fix:
+                // even for general questions, the model sees what's actually in the catalogue.
+                return "Current catalogue snapshot (use this data, do not invent products):\n" +
+                    actionExecutor.fetchActiveProducts();
         }
     }
 
@@ -249,25 +323,6 @@ public class ChatService {
      * @param intent the resolved intent
      * @return true if the intent requires authenticated live data access
      */
-    private boolean isLiveDataIntent(Intent intent) {
-        switch (intent) {
-            case LIST_ACTIVE_PRODUCTS:
-            case GET_PRODUCT_BY_CATEGORY:
-            case GET_AUCTION_STATUS:
-            case GET_HIGHEST_BID:
-            case GET_REMAINING_TIME:
-            case GET_BID_HISTORY:
-            case GET_BID_RECOMMENDATION:
-            case GET_PAYMENT_STATUS:
-            case GET_RECEIPT:
-            case PLACE_BID:
-            case PROCESS_PAYMENT:
-                return true;
-            default:
-                return false;
-        }
-    }
-
     /**
      * Calls the Ollama REST API with the given system prompt, conversation history,
      * and current user message.
@@ -306,7 +361,7 @@ public class ChatService {
 
             // Build the Ollama request body
             Map<String, Object> requestBody = Map.of(
-                "model", MODEL,
+                "model", model,
                 "messages", messages,
                 "stream", false   // Wait for the full response — streaming requires SSE handling
             );

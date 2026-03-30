@@ -19,6 +19,12 @@ public enum Intent {
     /** Trigger phrases: "show products", "what's for sale", "active items", "browse catalogue" */
     LIST_ACTIVE_PRODUCTS,
 
+    /**
+     * Trigger phrases: "any laptop?", "find me a watch", "dell laptop", "camera under 1000"
+     * Extracts a search keyword from the message and queries the catalogue by name/description.
+     */
+    SEARCH_PRODUCTS,
+
     /** Trigger phrases: "show electronics", "books for sale", "jewelry listings", "category X" */
     GET_PRODUCT_BY_CATEGORY,
 

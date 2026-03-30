@@ -42,6 +42,19 @@ if ($LASTEXITCODE -ne 0) {
 }
 Write-Host "      Docker is running." -ForegroundColor Green
 
+# ── Step 1b: Ensure .env file exists ──────────────────────────────────────────
+# Docker Compose reads environment variables from .env at the project root.
+# If a developer just cloned the repo, .env won't exist (it's gitignored).
+# We copy .env.example → .env as a safe default so the stack can start.
+# Developers can then edit .env to override credentials if needed.
+if (-not (Test-Path ".env")) {
+    Write-Host "      .env not found — copying from .env.example..." -ForegroundColor Yellow
+    Copy-Item ".env.example" ".env"
+    Write-Host "      .env created from .env.example. Edit it to change credentials." -ForegroundColor Green
+} else {
+    Write-Host "      .env file exists." -ForegroundColor Green
+}
+
 # ── Step 2: Build the Spring Boot JAR ────────────────────────────────────────
 # Maven builds the JAR on the host machine, not inside Docker.
 # This keeps the Docker image small (JRE-only, no Maven/JDK needed in container).
