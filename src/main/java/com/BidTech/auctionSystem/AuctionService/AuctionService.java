@@ -92,9 +92,18 @@ public class AuctionService {
             throw new InvalidBidException("Auction has ended.");
         }
 
-        // Reject bids that don't beat the current highest — ties are not allowed
+        // LOW BID notification and throw exception
         if (amount <= auction.getHighestBid()) {
-            throw new InvalidBidException("Bid must be higher than current highest bid.");
+            Map<String, Object> event = new HashMap<>();
+            event.put("type", "BidRejected");
+            event.put("auctionId", auctionId);
+            event.put("userId", userId);
+            event.put("attemptedAmount", amount);
+            event.put("highestBid", auction.getHighestBid());
+
+            rabbitTemplate.convertAndSend("auction.events", "bid.rejected", event);
+
+            throw new InvalidBidException("Your bid must be higher than the currently highest bid.");
         }
 
         // Persist the bid record
@@ -105,11 +114,6 @@ public class AuctionService {
         auction.setHighestBid(amount);
         auction.setHighestBidderId(userId);
         auctionRepository.save(auction);
-
-        // Send notification
-        notificationListener.addNotification(
-                "New bid on auction " + auctionId + ": $" + amount
-        );
 
         Map<String, Object> event = new HashMap<>();
         event.put("type", "BidPlaced");
@@ -183,14 +187,6 @@ public class AuctionService {
 
         auction.endAuction();
 
-        // Send notification to the winner
-        if (auction.getHighestBidderId() != null) {
-            notificationListener.addNotification(
-                    "Auction " + auctionId + " has ended. You are the winner! " +
-                            "Click Pay Now to complete your purchase."
-            );
-        }
-
         Map<String, Object> event = new HashMap<>();
         event.put("type", "AuctionEnded");
         event.put("broadcast", true);
@@ -198,7 +194,7 @@ public class AuctionService {
         event.put("winnerId", auction.getHighestBidderId());
         event.put("finalPrice", auction.getHighestBid());
 
-        rabbitTemplate.convertAndSend(RabbitMQConfig.AUCTION_QUEUE, event);
+        rabbitTemplate.convertAndSend(RabbitMQConfig.AUCTION_EVENTS_EXCHANGE, event);
 
         return auctionRepository.save(auction);
     }

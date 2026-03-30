@@ -13,7 +13,6 @@ import com.BidTech.auctionSystem.IAMService.UserRepository;
 import com.BidTech.auctionSystem.payment.model.Payment;
 import com.BidTech.auctionSystem.payment.model.Receipt;
 import com.BidTech.auctionSystem.payment.repository.PaymentRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import java.util.Map;
 import java.util.HashMap;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -107,11 +106,6 @@ public class PaymentService {
 
         paymentRepository.save(payment);
 
-        // Send notification to the winner
-        notificationListener.addNotification(
-                "Payment completed for auction " + auctionId + ". Transaction ID: " + transactionId
-        );
-
         // Publish event
         Map<String, Object> event = new HashMap<>();
         event.put("type", "PaymentCompleted");
@@ -191,7 +185,8 @@ public class PaymentService {
         );
     }
 
-    @RabbitListener(queues = RabbitMQConfig.AUCTION_QUEUE)
+    /*
+    @RabbitListener(queues = RabbitMQConfig.AUCTION_EVENTS_EXCHANGE)
     public void handleAuctionEnded(Map<String, Object> event) {
 
         if (!"AuctionEnded".equals(event.get("type"))) return;
@@ -216,4 +211,5 @@ public class PaymentService {
         System.out.println("👉 All users should be redirected to payment page");
         System.out.println("👉 ONLY User " + winnerId + " can complete payment\n");
     }
+     */
 }

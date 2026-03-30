@@ -196,14 +196,28 @@
         const auctionId = document.getElementById('bidAuctionId').value;
         const user = JSON.parse(localStorage.getItem("user"));
         const userId = user.id;
-        const amount    = document.getElementById('bidAmount').value;
-        if (!auctionId || !amount) { showResult('bidResult', 'Please enter auction ID and bid amount.', 'error'); return; }
+        const amount = document.getElementById('bidAmount').value;
+
+        if (!auctionId || !amount) {
+            showResult('bidResult', 'Please enter auction ID and bid amount.', 'error');
+            return;
+        }
+
         try {
             const res = await fetch(`/auction/${auctionId}/bid?userId=${userId}&amount=${amount}`, { method: 'POST' });
-            if (!res.ok) { const m = await res.text(); throw new Error(m || `HTTP ${res.status}`); }
+
+            if (!res.ok) {
+                const errorText = await res.text();
+                showResult('bidResult', `❌ ${errorText}`, 'error');
+                return;
+            }
+
             const d = await res.json();
             showResult('bidResult', `✅ Bid placed! ID: ${d.id} | Amount: $${d.amount}`, 'success');
-        } catch (err) { showResult('bidResult', `❌ ${err.message}`, 'error'); }
+
+        } catch (err) {
+            showResult('bidResult', `❌ ${err.message}`, 'error');
+        }
     }
 
     /** Gets highest bid via GET /auction/{id}/highest. @returns {Promise<void>} */

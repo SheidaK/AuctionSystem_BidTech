@@ -6,8 +6,7 @@ import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
-import org.springframework.amqp.core.Queue; // <-- 1. Add this import
+import org.springframework.amqp.core.Queue;
 
 /**
  * RabbitMQConfig — configures the RabbitMQ message broker beans.
@@ -29,26 +28,10 @@ public class RabbitMQConfig {
     /** Queue name — must match the @RabbitListener annotation in NotificationListener. */
     public static final String NOTIFICATION_QUEUE = "notification.queue";
     public static final String AUCTION_EVENTS_EXCHANGE = "auction.events";
-    public static final String AUCTION_QUEUE = "auction.events";
 
     @Bean
     public TopicExchange auctionEventsExchange() {
         return new TopicExchange(AUCTION_EVENTS_EXCHANGE);
-    }
-
-    /**
-     * RabbitAdmin auto-declares all Queue, Exchange, and Binding beans on startup.
-     * This ensures the notification queue exists before any listener tries to consume from it.
-     *
-     * @param connectionFactory the RabbitMQ connection factory (auto-configured by Spring Boot)
-     * @return the RabbitAdmin bean
-     */
-    @Bean
-    public RabbitAdmin rabbitAdmin(ConnectionFactory connectionFactory) {
-        RabbitAdmin admin = new RabbitAdmin(connectionFactory);
-        // setAutoStartup(true) ensures queues are declared as soon as the connection is ready
-        admin.setAutoStartup(true);
-        return admin;
     }
 
     /**
@@ -61,11 +44,6 @@ public class RabbitMQConfig {
     @Bean
     public Queue notificationQueue() {
         return new Queue(NOTIFICATION_QUEUE, true);
-    }
-
-    @Bean
-    public Queue auctionQueue() {
-        return new Queue(AUCTION_QUEUE, true);
     }
 
     @Bean

@@ -1,5 +1,8 @@
 package com.BidTech.auctionSystem.AuctionService;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.ResponseStatus;
+
 /**
  * InvalidBidException — thrown when a bid fails validation rules.
  *
@@ -11,6 +14,7 @@ package com.BidTech.auctionSystem.AuctionService;
  *
  * <p>The message passed to the constructor describes the specific reason for rejection.
  */
+@ResponseStatus(HttpStatus.BAD_REQUEST)
 public class InvalidBidException extends RuntimeException {
 
     /**
