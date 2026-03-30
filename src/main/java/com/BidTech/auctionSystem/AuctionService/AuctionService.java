@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.BidTech.auctionSystem.RabbitMQConfig;
 import org.springframework.stereotype.Service;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -180,11 +181,12 @@ public class AuctionService {
         auction.endAuction();
         Map<String, Object> event = new HashMap<>();
         event.put("type", "AuctionEnded");
+        event.put("broadcast", true);
         event.put("auctionId", auctionId);
         event.put("winnerId", auction.getHighestBidderId());
         event.put("finalPrice", auction.getHighestBid());
 
-        rabbitTemplate.convertAndSend("auction.events", "auction.ended", event);
+        rabbitTemplate.convertAndSend(RabbitMQConfig.AUCTION_QUEUE, event);
         return auctionRepository.save(auction);
 
 

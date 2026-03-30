@@ -26,6 +26,7 @@ public class RabbitMQConfig {
 
     /** Queue name — must match the @RabbitListener annotation in NotificationListener. */
     public static final String NOTIFICATION_QUEUE = "notification.queue";
+    public static final String AUCTION_QUEUE = "auction.events";
 
     /**
      * RabbitAdmin auto-declares all Queue, Exchange, and Binding beans on startup.
@@ -52,6 +53,11 @@ public class RabbitMQConfig {
     @Bean
     public Queue notificationQueue() {
         return new Queue(NOTIFICATION_QUEUE, true);
+    }
+
+    @Bean
+    public Queue auctionQueue() {
+        return new Queue(AUCTION_QUEUE, true);
     }
 
     /**
