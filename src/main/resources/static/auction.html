@@ -58,8 +58,9 @@
             <div class="grid grid-cols-2 gap-4 mb-4">
                 <div>
                     <label class="block text-sm font-semibold text-gray-600 mb-1">Item ID (from Catalogue) *</label>
-                    <input type="number" id="createItemId" placeholder="e.g. 1"
-                        class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition">
+                    <select id="itemSelect"
+                             class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition">
+                    </select>
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-600 mb-1">Starting Price ($) *</label>
@@ -79,13 +80,10 @@
             <div class="grid grid-cols-2 gap-4 mb-4">
                 <div>
                     <label class="block text-sm font-semibold text-gray-600 mb-1">Auction ID *</label>
-                    <input type="number" id="bidAuctionId" placeholder="e.g. 1"
-                        class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition">
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-600 mb-1">User ID *</label>
-                    <input type="number" id="bidUserId" placeholder="e.g. 3"
-                        class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition">
+                    <select id="bidAuctionId"
+                            class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition">
+                        <option value="">Select Auction</option>
+                    </select>
                 </div>
             </div>
             <div class="mb-4">
@@ -132,6 +130,40 @@
     </div>
 
 <script>
+    async function loadAuctions() {
+        try {
+            const res = await fetch('/auction/all');
+            const auctions = await res.json();
+
+            const dropdown = document.getElementById('bidAuctionId');
+            dropdown.innerHTML = '<option value="">Select Auction</option>';
+
+            auctions.forEach(a => {
+                const option = document.createElement('option');
+                option.value = a.id;
+                option.textContent = `Auction ${a.id} (Item ${a.itemId})`;
+                dropdown.appendChild(option);
+            });
+
+        } catch (err) {
+            console.error("Failed to load auctions", err);
+        }
+    }
+
+    async function loadItems() {
+        const res = await fetch("/api/catalogue/products"); // adjust if needed
+        const items = await res.json();
+
+        const dropdown = document.getElementById("itemSelect");
+        dropdown.innerHTML = "";
+
+        items.forEach(item => {
+            const option = document.createElement("option");
+            option.value = item.id;
+            option.textContent = `${item.name} ($${item.price})`;
+            dropdown.appendChild(option);
+        });
+    }
     // All API calls use relative URLs — routed through the Nginx load balancer.
     // The load balancer proxies /auction/* to the Spring Boot backend on port 8080.
 
@@ -172,7 +204,7 @@
 
     /** Creates a new auction via POST /auction/create. @returns {Promise<void>} */
     async function createAuction() {
-        const itemId = document.getElementById('createItemId').value;
+        const itemId = document.getElementById('itemSelect').value;
         const price  = document.getElementById('createStartingPrice').value;
         if (!itemId || !price) { showResult('createResult', 'Please fill in both fields.', 'error'); return; }
         try {
@@ -180,15 +212,17 @@
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const d = await res.json();
             showResult('createResult', `✅ Auction created! ID: ${d.id} | Item: ${d.itemId} | Starting bid: $${d.highestBid} | Ends: ${new Date(d.endTime).toLocaleString()}`, 'success');
+            loadAuctions();
         } catch (err) { showResult('createResult', `❌ ${err.message}`, 'error'); }
     }
 
     /** Places a bid via POST /auction/{id}/bid. @returns {Promise<void>} */
     async function placeBid() {
         const auctionId = document.getElementById('bidAuctionId').value;
-        const userId    = document.getElementById('bidUserId').value;
+        const user = JSON.parse(localStorage.getItem("user"));
+        const userId = user.id;
         const amount    = document.getElementById('bidAmount').value;
-        if (!auctionId || !userId || !amount) { showResult('bidResult', 'Please fill in all fields.', 'error'); return; }
+        if (!auctionId || !amount) { showResult('bidResult', 'Please enter auction ID and bid amount.', 'error'); return; }
         try {
             const res = await fetch(`/auction/${auctionId}/bid?userId=${userId}&amount=${amount}`, { method: 'POST' });
             if (!res.ok) { const m = await res.text(); throw new Error(m || `HTTP ${res.status}`); }
@@ -254,19 +288,41 @@
                 </table>`;
         } catch (err) { showResult('queryResult', `❌ ${err.message}`, 'error'); }
     }
-
     /** Ends an auction via POST /auction/{id}/end. @returns {Promise<void>} */
     async function endAuction() {
+        const user = JSON.parse(localStorage.getItem("user"));
+
+        if (!user || user.role !== "ADMIN") {
+            showResult('endResult', '❌ Only admins can end auctions.', 'error');
+            return;
+        }
+
         const id = document.getElementById('endAuctionId').value;
-        if (!id) { showResult('endResult', 'Please enter an Auction ID.', 'error'); return; }
+        if (!id) {
+            showResult('endResult', 'Please enter an Auction ID.', 'error');
+            return;
+        }
+
         if (!confirm(`End auction #${id}? This cannot be undone.`)) return;
+
         try {
-            const res = await fetch(`/auction/${id}/end`, { method: 'POST' });
+            const res = await fetch(`/auction/${id}/end?userId=${user.id}`, {
+                method: 'POST'
+            });
+
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
             const d = await res.json();
-            const winner = d.highestBidderId ? `Winner: User #${d.highestBidderId} with $${d.highestBid}` : 'No bids were placed.';
+
+            const winner = d.highestBidderId
+                ? `Winner: User #${d.highestBidderId} with $${d.highestBid}`
+                : 'No bids were placed.';
+
             showResult('endResult', `🏁 Auction #${d.id} ended. ${winner}`, 'success');
-        } catch (err) { showResult('endResult', `❌ ${err.message}`, 'error'); }
+
+        } catch (err) {
+            showResult('endResult', `❌ ${err.message}`, 'error');
+        }
     }
     function checkLogin() {
         const user = localStorage.getItem('user');
@@ -276,6 +332,7 @@
             window.location.href = '/login.html';
         }
     }
+    loadItems();
 
     function logout() {
         // Clear stored session
@@ -291,6 +348,7 @@
         window.location.href = '/login.html';
     }
     checkLogin();
+    loadAuctions();
 </script>
 </body>
 </html>

@@ -29,7 +29,9 @@ networks:
 # Data is only deleted with 'docker compose down -v' (explicit volume removal).
 volumes:
   bidtech-data:
-    name: bidtech-data   # Explicit name prevents Docker from prefixing with project name
+    name: bidtech-data
+  ollama-data:
+    name: ollama-data   # Explicit name prevents Docker from prefixing with project name
 
 services:
 
@@ -49,7 +51,19 @@ services:
       # Mount the named volume at /app/data — this is where all four SQLite files live.
       # The Dockerfile.backend ENTRYPOINT points all DB URLs to this directory.
       - bidtech-data:/app/data
+    environment:
+      # RabbitMQ connection — credentials from .env, host is the Docker service name
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_PORT: ${RABBITMQ_PORT}
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
     restart: unless-stopped   # Restart on crash, but not when manually stopped
+    # Backend waits for RabbitMQ and Ollama to be healthy before starting
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
     healthcheck:
       # wget is available in Alpine and checks the Spring Boot health endpoint.
       # --quiet suppresses output; --tries=1 means one attempt per check interval.
@@ -122,3 +136,47 @@ services:
       timeout: 10s       # Allow time for the proxy chain to respond
       retries: 3         # Mark unhealthy after 3 consecutive failures
       start_period: 60s  # Allow extra time since this depends on backend being ready
+
+  # ── RabbitMQ: Message Broker ────────────────────────────────────────────────
+  # Provides pub/sub messaging for the notification system.
+  # Credentials come from .env file — never hardcoded in the compose file.
+  # Management UI available at http://localhost:15672
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: bidtech-rabbitmq
+    networks:
+      - bidtech-network
+    ports:
+      - "5672:5672"     # AMQP port — used by the Spring Boot backend
+      - "15672:15672"   # Management UI — http://localhost:15672
+    environment:
+      # Credentials loaded from .env file via Docker Compose variable substitution
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ── Ollama: Local LLM Runtime ───────────────────────────────────────────────
+  # Runs llama3.2 locally for the AI chatbot. No data leaves the machine.
+  # The backend ChatService calls http://ollama:11434/api/chat internally.
+  ollama:
+    image: ollama/ollama:latest
+    container_name: bidtech-ollama
+    ports:
+      - "11434:11434"   # Exposed for model management (ollama pull/list)
+    networks:
+      - bidtech-network
+    volumes:
+      - ollama-data:/root/.ollama   # Persist downloaded models
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s

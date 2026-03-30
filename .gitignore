@@ -37,6 +37,11 @@ build/
 # task lists, and IDE config are developer tooling, not application source code.
 .kiro/
 
+### Environment Variables ###
+# .env contains credentials (RabbitMQ, Ollama config) — never commit.
+# .env.example is committed as a template for other developers.
+#.env
+
 ### Eclipse / Spring Tool Suite ###
 .settings/
 
