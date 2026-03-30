@@ -288,13 +288,31 @@
                             <span class="px-3 py-0.5 rounded-full text-xs font-semibold ${badgeClass[p.status]||'bg-gray-100 text-gray-600'}">${p.status}</span>
                         </div>
                         ${p.status === 'DRAFT' || p.status === 'INACTIVE' ? `
-                        <div class="flex gap-3 justify-end pt-3">
-                            <button onclick="activateProduct(${p.id})" class="px-4 py-2 bg-brand text-white text-sm font-semibold rounded-lg hover:bg-brand-dark transition">Activate</button>
-                            <button onclick="deleteProduct(${p.id})" class="px-4 py-2 bg-red-500 text-white text-sm font-semibold rounded-lg hover:bg-red-600 transition">Delete</button>
-                        </div>` : ''}
+<div class="flex gap-3 justify-end pt-3">
+    <button onclick="activateProduct(${p.id})"
+        class="px-4 py-2 bg-brand text-white text-sm font-semibold rounded-lg">
+        Activate
+    </button>
+
+    <button onclick="deleteProduct(${p.id})"
+        class="px-4 py-2 bg-red-500 text-white text-sm font-semibold rounded-lg">
+        Delete
+    </button>
+
+    <button onclick="createAuctionFromProduct(${p.id}, ${p.startingPrice})"
+        id="createAuctionBtn"
+        class="px-4 py-2 bg-purple-600 text-white text-sm font-semibold rounded-lg">
+        Create Auction
+    </button>
+</div>` : ''}
                     </div>`;
                 openModal();
-            } catch (err) {
+                const user = JSON.parse(localStorage.getItem("user"));
+
+                if (!user || user.role !== "ADMIN") {
+                    const btn = document.getElementById("createAuctionBtn");
+                    if (btn) btn.style.display = "none";
+                }            } catch (err) {
                 alert('Error loading product details');
             }
         }
@@ -303,6 +321,32 @@
         function logout() {
             localStorage.clear();
             window.location.href = '/login.html';
+        }
+        async function createAuctionFromProduct(productId, startingPrice) {
+            const user = JSON.parse(localStorage.getItem("user"));
+
+            if (!user || user.role !== "ADMIN") {
+                alert("Only admins can create auctions");
+                return;
+            }
+
+            try {
+                const res = await fetch(`/auction/create?itemId=${productId}&startingPrice=${startingPrice}`, {
+                    method: "POST"
+                });
+
+                if (!res.ok) throw new Error("Failed");
+
+                const data = await res.json();
+
+                alert(`Auction created! ID: ${data.id}`);
+
+                // go to auction page
+                window.location.href = "/auction.html";
+            } catch (err) {
+                console.error(err);
+                alert("Error creating auction");
+            }
         }
     </script>
 
