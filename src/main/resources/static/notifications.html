@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Notifications - BidTech</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #f9f9f9; }
+        .container { max-width: 700px; margin: 0 auto; }
+        h1 { color: #333; }
+        .notification {
+            background: white;
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 12px;
+            border-radius: 6px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+        }
+        .button {
+            padding: 10px 20px;
+            margin-right: 10px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .button:hover { background: #0056b3; }
+        .clear-btn { background: #dc3545; }
+        .clear-btn:hover { background: #c82333; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🔔 Notifications</h1>
+    <button class="button" onclick="loadNotifications()">Refresh Notifications</button>
+    <button class="button clear-btn" onclick="clearNotifications()">Clear All</button>
+
+    <div id="notificationList" style="margin-top: 20px;"></div>
+</div>
+
+<script>
+    function loadNotifications() {
+        fetch('/api/notifications')
+            .then(res => res.json())
+            .then(data => {
+                const list = document.getElementById('notificationList');
+                list.innerHTML = '';
+
+                if (data.length === 0) {
+                    list.innerHTML = '<p style="color:#666;">No notifications yet.</p>';
+                    return;
+                }
+
+                data.forEach(msg => {
+                    const div = document.createElement('div');
+                    div.className = 'notification';
+                    div.innerHTML = `<strong>${msg}</strong>`;
+                    list.appendChild(div);
+                });
+            })
+            .catch(err => {
+                console.error(err);
+                alert("Could not load notifications.");
+            });
+    }
+
+    function clearNotifications() {
+        if (confirm("Clear all notifications?")) {
+            fetch('/api/notifications/clear', { method: 'POST' })
+                .then(() => loadNotifications());
+        }
+    }
+
+    // Auto-load notifications when page opens
+    window.onload = loadNotifications;
+</script>
+</body>
+</html>
