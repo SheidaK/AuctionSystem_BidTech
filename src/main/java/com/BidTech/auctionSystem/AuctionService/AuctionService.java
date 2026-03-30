@@ -49,8 +49,14 @@ public class AuctionService {
      * @param startingPrice the opening bid amount
      * @return the saved {@link Auction} entity with its generated ID
      */
-    public Auction createAuction(Long itemId, double startingPrice) {
+    public Auction createAuction(Long itemId, double startingPrice, LocalDateTime endDate) {
+        if (auctionRepository.existsByItemIdAndActiveTrue(itemId)) {
+            throw new RuntimeException("Auction already exists for this item");
+        }
+
         Auction auction = new Auction(itemId, startingPrice);
+        auction.setEndTime(endDate);
+
         return auctionRepository.save(auction);
     }
 

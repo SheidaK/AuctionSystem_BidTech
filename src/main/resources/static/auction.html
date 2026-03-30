@@ -78,8 +78,10 @@
             </p>
             <div class="mb-4">
                 <label class="block text-sm font-semibold text-gray-600 mb-1">Auction ID *</label>
-                <input type="number" id="queryAuctionId" placeholder="e.g. 1"
-                    class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition">
+                <select id="queryAuctionId"
+                        class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition">
+                    <option value="">Select Auction</option>
+                </select>
             </div>
             <div class="flex gap-3 flex-wrap">
                 <button onclick="getHighestBid()"   class="px-5 py-2.5 bg-brand text-white text-sm font-semibold rounded-lg hover:bg-brand-dark transition shadow-sm">💵 Highest Bid</button>
@@ -97,8 +99,10 @@
             </p>
             <div class="mb-4 max-w-xs">
                 <label class="block text-sm font-semibold text-gray-600 mb-1">Auction ID *</label>
-                <input type="number" id="endAuctionId" placeholder="e.g. 1"
-                    class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition">
+                <select id="endAuctionId"
+                        class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition">
+                    <option value="">Select Auction</option>
+                </select>
             </div>
             <button onclick="endAuction()" class="px-6 py-2.5 bg-red-500 text-white text-sm font-semibold rounded-lg hover:bg-red-600 transition shadow-sm">🏁 End Auction</button>
             <div id="endResult" class="hidden mt-4 px-4 py-3 rounded-lg text-sm font-medium"></div>
@@ -111,18 +115,30 @@
             const res = await fetch('/auction/all');
             const auctions = await res.json();
 
-            const dropdown = document.getElementById('bidAuctionId');
-            dropdown.innerHTML = '<option value="">Select Auction</option>';
+            const bidDropdown = document.getElementById('bidAuctionId');
+            const queryDropdown = document.getElementById('queryAuctionId');
+            const endDropdown = document.getElementById('endAuctionId');
+
+            // reset all
+            bidDropdown.innerHTML = '<option value="">Select Auction</option>';
+            queryDropdown.innerHTML = '<option value="">Select Auction</option>';
+            endDropdown.innerHTML = '<option value="">Select Auction</option>';
 
             for (const a of auctions) {
-                // fetch product details
+
+                // get product info
                 const productRes = await fetch(`/api/catalogue/products/${a.itemId}`);
                 const product = await productRes.json();
 
-                const option = document.createElement('option');
-                option.value = a.id;
-                option.textContent = product.name; //  SHOW NAME
-                dropdown.appendChild(option);
+                const text = product.name;
+
+                // create option for each dropdown
+                [bidDropdown, queryDropdown, endDropdown].forEach(drop => {
+                    const option = document.createElement('option');
+                    option.value = a.id;
+                    option.textContent = text;
+                    drop.appendChild(option);
+                });
             }
 
         } catch (err) {

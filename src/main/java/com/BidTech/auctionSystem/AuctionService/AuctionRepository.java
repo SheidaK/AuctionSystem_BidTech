@@ -12,4 +12,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * {@code AUCTION.db} via {@link com.BidTech.auctionSystem.config.AuctionDbConfig}.
  */
 public interface AuctionRepository extends JpaRepository<Auction, Long> {
+    boolean existsByItemIdAndActiveTrue(Long itemId);
 }
