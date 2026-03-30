@@ -25,7 +25,13 @@
             <a href="/auction.html" class="text-white bg-white/20 px-4 py-4 text-sm font-medium rounded hover:bg-white/30 transition">🔨 Auction</a>
             <a href="/users.html"   class="text-white/85 px-4 py-4 text-sm font-medium rounded hover:bg-white/15 transition">👤 Users</a>
             <a href="/pay.html"     class="text-white/85 px-4 py-4 text-sm font-medium rounded hover:bg-white/15 transition">💳 Payment</a>
-        <button onclick="logout()" class="text-white px-4 py-2 hover:bg-white/20 rounded">
+            <script>
+                const user = JSON.parse(localStorage.getItem('user') || '{}');
+                if (user.role === 'ADMIN') {
+                    document.write('<a href="/notifications.html" class="text-white/85 px-4 py-4 text-sm font-medium rounded hover:bg-white/15 transition">🔔 Notifications</a>');
+                }
+            </script>
+            <button onclick="logout()" class="text-white px-4 py-2 hover:bg-white/20 rounded">
     🚪 Logout
 </button>
         </div>
@@ -320,6 +326,8 @@
 
             showResult('endResult', `🏁 Auction #${d.id} ended. ${winner}`, 'success');
 
+            showAuctionEndModal(d.id);
+
         } catch (err) {
             showResult('endResult', `❌ ${err.message}`, 'error');
         }
@@ -350,5 +358,39 @@
     checkLogin();
     loadAuctions();
 </script>
+
+    <div id="auctionEndModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full mx-4 p-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">🏁 Auction Ended</h2>
+            <p id="modalMessage" class="text-gray-600 mb-6"></p>
+
+            <div class="flex gap-3">
+                <button onclick="goToPayment()"
+                        class="flex-1 bg-green-600 text-white py-3 rounded-xl font-semibold hover:bg-green-700 transition">
+                    💳 Pay Now
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showAuctionEndModal(auctionId) {
+            document.getElementById('modalMessage').innerHTML = `
+                Auction <strong>${auctionId}</strong> has ended.<br>
+                You are the winner!<br><br>
+                Please proceed to payment.
+            `;
+            document.getElementById('auctionEndModal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('auctionEndModal').classList.add('hidden');
+        }
+
+        function goToPayment() {
+            closeModal();
+            window.location.href = '/pay.html';
+        }
+    </script>
 </body>
 </html>

@@ -2,66 +2,97 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Notifications - BidTech</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifications — BidTech</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: { extend: { colors: { brand: { DEFAULT: '#667eea', dark: '#5568d3' } } } }
+        }
+    </script>
     <style>
-        body { font-family: Arial, sans-serif; margin: 40px; background: #f9f9f9; }
-        .container { max-width: 700px; margin: 0 auto; }
-        h1 { color: #333; }
-        .notification {
-            background: white;
-            border: 1px solid #ddd;
-            padding: 15px;
-            margin-bottom: 12px;
-            border-radius: 6px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-        }
-        .button {
-            padding: 10px 20px;
-            margin-right: 10px;
-            background: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .button:hover { background: #0056b3; }
-        .clear-btn { background: #dc3545; }
-        .clear-btn:hover { background: #c82333; }
+        .bg-brand-gradient { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .bg-nav-gradient   { background: linear-gradient(135deg, #4a3f8f 0%, #5a2d82 100%); }
     </style>
 </head>
-<body>
-<div class="container">
-    <h1>🔔 Notifications</h1>
-    <button class="button" onclick="loadNotifications()">Refresh Notifications</button>
-    <button class="button clear-btn" onclick="clearNotifications()">Clear All</button>
+<body class="bg-brand-gradient min-h-screen font-sans">
 
-    <div id="notificationList" style="margin-top: 20px;"></div>
+<nav class="bg-nav-gradient shadow-lg">
+    <div class="max-w-6xl mx-auto px-6 flex items-center gap-1">
+        <span class="text-white font-bold text-lg py-4 pr-5 mr-3 border-r border-white/20">🏛️ BidTech</span>
+        <a href="/index.html" class="text-white/85 px-4 py-4 text-sm font-medium rounded hover:bg-white/15 transition">📦 Catalogue</a>
+        <a href="/auction.html" class="text-white/85 px-4 py-4 text-sm font-medium rounded hover:bg-white/15 transition">🔨 Auction</a>
+        <a href="/users.html" class="text-white/85 px-4 py-4 text-sm font-medium rounded hover:bg-white/15 transition">👤 Users</a>
+        <a href="/pay.html" class="text-white/85 px-4 py-4 text-sm font-medium rounded hover:bg-white/15 transition">💳 Payment</a>
+        <a href="/notifications.html" class="text-white bg-white/20 px-4 py-4 text-sm font-medium rounded hover:bg-white/30 transition">🔔 Notifications</a>
+        <button onclick="logout()" class="text-white px-4 py-2 hover:bg-white/20 rounded">🚪 Logout</button>
+    </div>
+</nav>
+
+<div class="max-w-4xl mx-auto my-8 bg-white rounded-2xl shadow-2xl overflow-hidden">
+
+    <header class="bg-brand-gradient text-white px-8 py-8">
+        <h1 class="text-3xl font-bold mb-1">🔔 Notifications</h1>
+        <p class="text-white/90">Stay updated with auction and payment events</p>
+    </header>
+
+    <div class="p-6">
+        <div class="flex justify-between items-center mb-6">
+            <button onclick="loadNotifications()"
+                    class="px-5 py-2 bg-brand text-white text-sm font-semibold rounded-lg hover:bg-brand-dark transition">
+                🔄 Refresh
+            </button>
+            <button onclick="clearNotifications()"
+                    class="px-5 py-2 bg-red-500 text-white text-sm font-semibold rounded-lg hover:bg-red-600 transition">
+                🗑️ Clear All
+            </button>
+        </div>
+
+        <div id="notificationList" class="space-y-3">
+
+        </div>
+
+        <div id="emptyState" class="hidden text-center py-16 text-gray-400">
+            <div class="text-6xl mb-4">🔔</div>
+            <p class="text-lg">No notifications yet</p>
+            <p class="text-sm">End an auction or complete a payment to see updates here</p>
+        </div>
+    </div>
 </div>
 
 <script>
-    function loadNotifications() {
-        fetch('/api/notifications')
-            .then(res => res.json())
-            .then(data => {
-                const list = document.getElementById('notificationList');
-                list.innerHTML = '';
+    async function loadNotifications() {
+        const list = document.getElementById('notificationList');
+        const empty = document.getElementById('emptyState');
 
-                if (data.length === 0) {
-                    list.innerHTML = '<p style="color:#666;">No notifications yet.</p>';
-                    return;
-                }
+        try {
+            const res = await fetch('/api/notifications');
+            const notifications = await res.json();
 
-                data.forEach(msg => {
-                    const div = document.createElement('div');
-                    div.className = 'notification';
-                    div.innerHTML = `<strong>${msg}</strong>`;
-                    list.appendChild(div);
-                });
-            })
-            .catch(err => {
-                console.error(err);
-                alert("Could not load notifications.");
+            list.innerHTML = '';
+
+            if (notifications.length === 0) {
+                empty.classList.remove('hidden');
+                return;
+            }
+
+            empty.classList.add('hidden');
+
+            notifications.forEach(msg => {
+                const div = document.createElement('div');
+                div.className = 'bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex items-start gap-3';
+                div.innerHTML = `
+                        <div class="text-2xl">🔔</div>
+                        <div class="flex-1">
+                            <p class="text-gray-800">${msg}</p>
+                        </div>
+                    `;
+                list.appendChild(div);
             });
+        } catch (err) {
+            console.error(err);
+            list.innerHTML = `<div class="text-red-500 text-center py-8">Could not load notifications.</div>`;
+        }
     }
 
     function clearNotifications() {
@@ -71,7 +102,7 @@
         }
     }
 
-    // Auto-load notifications when page opens
+    // Auto-load when page opens
     window.onload = loadNotifications;
 </script>
 </body>

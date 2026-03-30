@@ -1,5 +1,6 @@
 package com.BidTech.auctionSystem.payment.service;
 
+import com.BidTech.auctionSystem.NotificationListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -32,6 +33,10 @@ import java.util.HashMap;
  */
 @Service
 public class PaymentService {
+
+    @Autowired
+    private NotificationListener notificationListener;
+
     @Autowired
     private RabbitTemplate rabbitTemplate;
 
@@ -100,6 +105,12 @@ public class PaymentService {
 
         paymentRepository.save(payment);
 
+        // Send notification to the winner
+        notificationListener.addNotification(
+                "Payment completed for auction " + auctionId + ". Transaction ID: " + transactionId
+        );
+
+        /*
         // Publish event
         Map<String, Object> event = new HashMap<>();
         event.put("type", "PaymentCompleted");
@@ -113,6 +124,7 @@ public class PaymentService {
                 "payment.completed",
                 event
         );
+        */
 
         return transactionId;
     }

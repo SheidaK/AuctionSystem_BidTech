@@ -25,7 +25,13 @@
             <a href="/auction.html" class="text-white/85 px-4 py-4 text-sm font-medium rounded hover:bg-white/15 transition">🔨 Auction</a>
             <a href="/users.html"   class="text-white bg-white/20 px-4 py-4 text-sm font-medium rounded hover:bg-white/30 transition">👤 Users</a>
             <a href="/pay.html"     class="text-white/85 px-4 py-4 text-sm font-medium rounded hover:bg-white/15 transition">💳 Payment</a>
-        <button onclick="logout()" class="text-white px-4 py-2 hover:bg-white/20 rounded">
+            <script>
+                const user = JSON.parse(localStorage.getItem('user') || '{}');
+                if (user.role === 'ADMIN') {
+                    document.write('<a href="/notifications.html" class="text-white/85 px-4 py-4 text-sm font-medium rounded hover:bg-white/15 transition">🔔 Notifications</a>');
+                }
+            </script>
+            <button onclick="logout()" class="text-white px-4 py-2 hover:bg-white/20 rounded">
     🚪 Logout
 </button>
         </div>

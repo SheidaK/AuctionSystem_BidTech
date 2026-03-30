@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.BidTech.auctionSystem.NotificationListener;
 import org.springframework.stereotype.Service;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +20,9 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 @Service
 public class AuctionService {
+
+    @Autowired
+    private NotificationListener notificationListener;
 
     @Autowired
     private RabbitTemplate rabbitTemplate;
@@ -95,17 +99,18 @@ public class AuctionService {
         auction.setHighestBidderId(userId);
         auctionRepository.save(auction);
 
-        Map<String, Object> event = new HashMap<>();
-        event.put("type", "BidPlaced");
-        event.put("auctionId", auctionId);
-        event.put("userId", userId);
-        event.put("amount", amount);
-
-        rabbitTemplate.convertAndSend(
-                "auction.events",
-                "bid.placed",
-                event
+        // Send notification
+        notificationListener.addNotification(
+                "New bid on auction " + auctionId + ": $" + amount
         );
+
+        // RabbitMQ line temporarily commented out to avoid exchange error
+        // Map<String, Object> event = new HashMap<>();
+        // event.put("type", "BidPlaced");
+        // event.put("auctionId", auctionId);
+        // event.put("userId", userId);
+        // event.put("amount", amount);
+        // rabbitTemplate.convertAndSend("auction.events", "bid.placed", event);
 
 
         return bid;
@@ -172,13 +177,23 @@ public class AuctionService {
                 .orElseThrow(() -> new AuctionNotFoundException(auctionId));
 
         auction.endAuction();
-        Map<String, Object> event = new HashMap<>();
-        event.put("type", "AuctionEnded");
-        event.put("auctionId", auctionId);
-        event.put("winnerId", auction.getHighestBidderId());
-        event.put("finalPrice", auction.getHighestBid());
 
-        rabbitTemplate.convertAndSend("auction.events", "auction.ended", event);
+        // Send notification to the winner
+        if (auction.getHighestBidderId() != null) {
+            notificationListener.addNotification(
+                    "Auction " + auctionId + " has ended. You are the winner! " +
+                            "Click Pay Now to complete your purchase."
+            );
+        }
+
+        // RabbitMQ line temporarily commented out to avoid exchange error
+        // Map<String, Object> event = new HashMap<>();
+        // event.put("type", "AuctionEnded");
+        // event.put("auctionId", auctionId);
+        // event.put("winnerId", auction.getHighestBidderId());
+        // event.put("finalPrice", auction.getHighestBid());
+        // rabbitTemplate.convertAndSend("auction.events", "auction.ended", event);
+
         return auctionRepository.save(auction);
 
 
