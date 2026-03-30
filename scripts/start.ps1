@@ -36,6 +36,15 @@ if ($LASTEXITCODE -ne 0) {
 }
 Write-Host "      Docker is running." -ForegroundColor Green
 
+# ── Ensure .env file exists ───────────────────────────────────────────────────
+# Docker Compose needs .env for RabbitMQ/Ollama credentials.
+# If missing (fresh clone), copy from .env.example as a safe default.
+if (-not (Test-Path ".env")) {
+    Write-Host "      .env not found — copying from .env.example..." -ForegroundColor Yellow
+    Copy-Item ".env.example" ".env"
+    Write-Host "      .env created. Edit it to change credentials." -ForegroundColor Green
+}
+
 # ── Step 2: Start all containers ─────────────────────────────────────────────
 # 'docker compose start' resumes stopped containers without recreating them.
 # This is faster than 'docker compose up' because it skips image builds and

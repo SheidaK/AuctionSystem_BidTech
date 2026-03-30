@@ -45,6 +45,32 @@ public class ActionExecutor {
     @Autowired
     private PaymentRepository paymentRepository;
 
+    /**
+     * Searches products by keyword in name and description.
+     * Uses the catalogue's JPQL search query for case-insensitive partial matching.
+     *
+     * @param keyword the search term (e.g. "laptop", "dell", "rolex")
+     * @return a plain-English summary of matching products, or a "no results" message
+     */
+    public String searchProducts(String keyword) {
+        // searchByNameOrDescription does: WHERE LOWER(name) LIKE %keyword% OR LOWER(description) LIKE %keyword%
+        var results = productRepository.searchByNameOrDescription(keyword);
+        if (results.isEmpty()) {
+            // No matches — also include the full catalogue so Ollama can suggest alternatives
+            String allProducts = fetchActiveProducts();
+            return "No products found matching '" + keyword + "'.\n\n" +
+                "Here is the full catalogue for reference:\n" + allProducts;
+        }
+        StringBuilder sb = new StringBuilder("Search results for '" + keyword + "' (" + results.size() + " found):\n");
+        results.forEach(p -> sb.append(String.format(
+            "- ID %d: %s (%s) — Starting price: $%.2f — Status: %s — %s\n",
+            p.getId(), p.getName(), p.getCategory(),
+            p.getStartingPrice() != null ? p.getStartingPrice().doubleValue() : 0.0,
+            p.getStatus(),
+            p.getDescription() != null ? p.getDescription() : "No description")));
+        return sb.toString();
+    }
+
     // ── Read Methods ──────────────────────────────────────────────────────────
 
     /**

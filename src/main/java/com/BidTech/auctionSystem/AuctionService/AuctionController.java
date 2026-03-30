@@ -1,5 +1,6 @@
 package com.BidTech.auctionSystem.AuctionService;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.web.bind.annotation.GetMapping;
@@ -54,8 +55,14 @@ public class AuctionController {
     @PostMapping("/create")
     public Auction createAuction(
             @RequestParam Long itemId,
-            @RequestParam double startingPrice) {
-        return auctionService.createAuction(itemId, startingPrice);
+            @RequestParam double startingPrice,
+            @RequestParam String endDate
+    ) {
+        return auctionService.createAuction(
+                itemId,
+                startingPrice,
+                LocalDateTime.parse(endDate)
+        );
     }
 
     /**

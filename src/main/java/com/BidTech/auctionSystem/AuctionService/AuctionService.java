@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.BidTech.auctionSystem.NotificationListener;
+import com.BidTech.auctionSystem.RabbitMQConfig;
 import org.springframework.stereotype.Service;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,8 +54,14 @@ public class AuctionService {
      * @param startingPrice the opening bid amount
      * @return the saved {@link Auction} entity with its generated ID
      */
-    public Auction createAuction(Long itemId, double startingPrice) {
+    public Auction createAuction(Long itemId, double startingPrice, LocalDateTime endDate) {
+        if (auctionRepository.existsByItemIdAndActiveTrue(itemId)) {
+            throw new RuntimeException("Auction already exists for this item");
+        }
+
         Auction auction = new Auction(itemId, startingPrice);
+        auction.setEndTime(endDate);
+
         return auctionRepository.save(auction);
     }
 
@@ -104,14 +111,12 @@ public class AuctionService {
                 "New bid on auction " + auctionId + ": $" + amount
         );
 
-        // RabbitMQ line temporarily commented out to avoid exchange error
-        // Map<String, Object> event = new HashMap<>();
-        // event.put("type", "BidPlaced");
-        // event.put("auctionId", auctionId);
-        // event.put("userId", userId);
-        // event.put("amount", amount);
-        // rabbitTemplate.convertAndSend("auction.events", "bid.placed", event);
-
+        Map<String, Object> event = new HashMap<>();
+        event.put("type", "BidPlaced");
+        event.put("auctionId", auctionId);
+        event.put("userId", userId);
+        event.put("amount", amount);
+        rabbitTemplate.convertAndSend("auction.events", "bid.placed", event);
 
         return bid;
     }
@@ -186,18 +191,16 @@ public class AuctionService {
             );
         }
 
-        // RabbitMQ line temporarily commented out to avoid exchange error
-        // Map<String, Object> event = new HashMap<>();
-        // event.put("type", "AuctionEnded");
-        // event.put("auctionId", auctionId);
-        // event.put("winnerId", auction.getHighestBidderId());
-        // event.put("finalPrice", auction.getHighestBid());
-        // rabbitTemplate.convertAndSend("auction.events", "auction.ended", event);
+        Map<String, Object> event = new HashMap<>();
+        event.put("type", "AuctionEnded");
+        event.put("broadcast", true);
+        event.put("auctionId", auctionId);
+        event.put("winnerId", auction.getHighestBidderId());
+        event.put("finalPrice", auction.getHighestBid());
+
+        rabbitTemplate.convertAndSend(RabbitMQConfig.AUCTION_QUEUE, event);
 
         return auctionRepository.save(auction);
-
-
-
     }
     public List<Auction> getAllAuctions() {
         return auctionRepository.findAll();

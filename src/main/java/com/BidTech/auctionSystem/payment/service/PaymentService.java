@@ -1,6 +1,7 @@
 package com.BidTech.auctionSystem.payment.service;
 
 import com.BidTech.auctionSystem.NotificationListener;
+import com.BidTech.auctionSystem.RabbitMQConfig;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -15,6 +16,7 @@ import com.BidTech.auctionSystem.payment.repository.PaymentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import java.util.Map;
 import java.util.HashMap;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
 
 /**
  * PaymentService — business logic for processing payments and generating receipts.
@@ -110,7 +112,6 @@ public class PaymentService {
                 "Payment completed for auction " + auctionId + ". Transaction ID: " + transactionId
         );
 
-        /*
         // Publish event
         Map<String, Object> event = new HashMap<>();
         event.put("type", "PaymentCompleted");
@@ -124,7 +125,6 @@ public class PaymentService {
                 "payment.completed",
                 event
         );
-        */
 
         return transactionId;
     }
@@ -189,5 +189,31 @@ public class PaymentService {
             payment.getTransactionId(),
             payment.getStatus()
         );
+    }
+
+    @RabbitListener(queues = RabbitMQConfig.AUCTION_QUEUE)
+    public void handleAuctionEnded(Map<String, Object> event) {
+
+        if (!"AuctionEnded".equals(event.get("type"))) return;
+
+        Long auctionId = ((Number) event.get("auctionId")).longValue();
+        Object winnerObj = event.get("winnerId");
+        Double price = ((Number) event.get("finalPrice")).doubleValue();
+
+        System.out.println("\n🔔 AUCTION ENDED NOTIFICATION 🔔");
+
+        if (winnerObj == null) {
+            System.out.println("⚠️ Auction " + auctionId + " ended with NO winner.");
+            return;
+        }
+
+        Long winnerId = ((Number) winnerObj).longValue();
+
+        System.out.println("Auction ID: " + auctionId);
+        System.out.println("Winner User ID: " + winnerId);
+        System.out.println("Final Price: $" + price);
+
+        System.out.println("👉 All users should be redirected to payment page");
+        System.out.println("👉 ONLY User " + winnerId + " can complete payment\n");
     }
 }

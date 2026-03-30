@@ -1,0 +1,18 @@
+# ── Ollama with auto-pull model on startup ────────────────────────────────────
+# This Dockerfile extends the official Ollama image with a custom entrypoint
+# that automatically pulls the model specified by the OLLAMA_MODEL env var
+# on first startup. The model name comes from .env via docker-compose.
+#
+# Why not pull during build? Docker build doesn't have access to .env variables.
+# Instead, we pull at runtime on first start — the model is cached in the
+# ollama-data volume so subsequent starts are instant.
+FROM ollama/ollama:latest
+
+# Copy the custom entrypoint script that handles model auto-pull
+COPY scripts/ollama-entrypoint.sh /ollama-entrypoint.sh
+
+# Make it executable
+RUN chmod +x /ollama-entrypoint.sh
+
+# Use our custom entrypoint instead of the default
+ENTRYPOINT ["/ollama-entrypoint.sh"]

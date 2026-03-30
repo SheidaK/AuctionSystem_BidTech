@@ -173,10 +173,36 @@ public class IntentResolver {
             }
         }
 
-        // LIST_ACTIVE_PRODUCTS: "show products", "what's for sale", "active items", "browse"
+        // ── SEARCH_PRODUCTS: keyword-based product search ───────────────────────
+        // Triggered when the user mentions a specific product noun (laptop, watch, etc.)
+        // Extracts the noun as the search keyword and queries the catalogue by name/description.
+        // This MUST come before LIST_ACTIVE_PRODUCTS so "any laptop?" triggers a search,
+        // not a full catalogue dump.
+        String[] searchableNouns = {"laptop", "watch", "camera", "phone", "painting", "book",
+            "computer", "tablet", "ring", "necklace", "dell", "canon", "rolex", "harry potter",
+            "xps", "macbook", "iphone", "samsung", "vintage", "abstract"};
+        for (String noun : searchableNouns) {
+            if (lower.contains(noun)) {
+                // Use the matched noun as the search keyword for the catalogue query
+                params.put("keyword", noun);
+                return new ResolvedIntent(Intent.SEARCH_PRODUCTS, params, null);
+            }
+        }
+
+        // LIST_ACTIVE_PRODUCTS: broad matching for browsing the full catalogue.
+        // Only triggers when no specific product noun was found above.
         if (lower.contains("product") || lower.contains("for sale") || lower.contains("active item")
                 || lower.contains("browse") || lower.contains("catalogue") || lower.contains("catalog")
-                || lower.contains("listing") || lower.contains("what's available")) {
+                || lower.contains("listing") || lower.contains("what's available")
+                || lower.contains("available") || lower.contains("what can i")
+                || lower.contains("show me") || lower.contains("find me")
+                || lower.contains("search") || lower.contains("looking for")
+                || lower.contains("in auction") || lower.contains("on auction")
+                || lower.contains("for auction") || lower.contains("up for")
+                || lower.contains("what do you have") || lower.contains("anything")
+                || lower.contains("what's on") || lower.contains("inventory")
+                || lower.contains("item") || lower.contains("thing") || lower.contains("stuff")
+                || (lower.contains("what is") && lower.contains("sell"))) {
             return new ResolvedIntent(Intent.LIST_ACTIVE_PRODUCTS, params, null);
         }
 

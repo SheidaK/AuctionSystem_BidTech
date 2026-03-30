@@ -176,4 +176,7 @@ public class Auction {
     public void endAuction() {
         this.active = false;
     }
+    public void setEndTime(LocalDateTime endTime) {
+        this.endTime = endTime;
+    }
 }
