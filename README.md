@@ -11,7 +11,7 @@ User Browser
      │
      ▼  http://localhost (port 80)
 ┌─────────────────────┐
-│   Nginx Load Balancer│  ← only host-exposed port
+│  Nginx Load Balancer│  ← only host-exposed port
 └────────┬────────────┘
          │
     ┌────┴────┐
