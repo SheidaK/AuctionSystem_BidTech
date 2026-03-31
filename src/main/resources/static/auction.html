@@ -132,13 +132,12 @@
 
             for (const a of auctions) {
 
-                // get product info
+                if (!a.active || new Date(a.endTime) < new Date()) continue;
+
                 const productRes = await fetch(`/api/catalogue/products/${a.itemId}`);
                 const product = await productRes.json();
-
                 const text = product.name;
 
-                // create option for each dropdown
                 [bidDropdown, queryDropdown, endDropdown].forEach(drop => {
                     const option = document.createElement('option');
                     option.value = a.id;
@@ -310,6 +309,7 @@
             showResult('endResult', `🏁 Auction #${d.id} ended. ${winner}`, 'success');
 
             showAuctionEndModal(d.id);
+            loadAuctions();
 
         } catch (err) {
             showResult('endResult', `❌ ${err.message}`, 'error');
