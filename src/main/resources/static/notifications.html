@@ -102,8 +102,13 @@
         }
     }
 
-    // Auto-load when page opens
-    window.onload = loadNotifications;
+    // Auto-load when page opens and poll every 5 seconds for new notifications
+    window.onload = () => {
+        loadNotifications();
+        // Poll every 5 seconds so new notifications appear automatically
+        // without needing to click Refresh
+        setInterval(loadNotifications, 5000);
+    };
 </script>
 </body>
 </html>

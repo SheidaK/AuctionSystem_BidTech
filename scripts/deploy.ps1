@@ -81,6 +81,13 @@ Write-Host "[3/5] Removing existing containers..." -ForegroundColor Yellow
 docker compose down --remove-orphans
 # Not checking exit code here — 'down' on a non-existent stack exits 0 anyway
 
+# Clean up dangling images, stopped containers, and build cache to prevent
+# Docker from accumulating disk space over repeated deploys.
+# --force skips the confirmation prompt. This only removes unused resources —
+# active containers, volumes, and in-use images are never touched.
+Write-Host "      Cleaning up unused Docker resources..." -ForegroundColor DarkGray
+docker system prune -f > $null 2>&1
+
 Write-Host "      Existing containers removed." -ForegroundColor Green
 
 # ── Step 4: Build images and start all containers ────────────────────────────

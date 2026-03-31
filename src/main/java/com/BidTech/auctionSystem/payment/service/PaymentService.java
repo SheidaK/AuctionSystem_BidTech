@@ -1,7 +1,8 @@
 package com.BidTech.auctionSystem.payment.service;
 
-import com.BidTech.auctionSystem.NotificationListener;
-import com.BidTech.auctionSystem.RabbitMQConfig;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -10,12 +11,10 @@ import com.BidTech.auctionSystem.AuctionService.Auction;
 import com.BidTech.auctionSystem.AuctionService.AuctionRepository;
 import com.BidTech.auctionSystem.IAMService.User;
 import com.BidTech.auctionSystem.IAMService.UserRepository;
+import com.BidTech.auctionSystem.NotificationListener;
 import com.BidTech.auctionSystem.payment.model.Payment;
 import com.BidTech.auctionSystem.payment.model.Receipt;
 import com.BidTech.auctionSystem.payment.repository.PaymentRepository;
-import java.util.Map;
-import java.util.HashMap;
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
 
 /**
  * PaymentService — business logic for processing payments and generating receipts.
@@ -91,6 +90,13 @@ public class PaymentService {
 
         if (!isWinner(userId, auctionId)) {
             return "Please make sure you are the winner.";
+        }
+
+        // Prevent duplicate payments — check if this auction has already been paid for.
+        // A winning auction should only be paid once. Without this check, clicking
+        // "Pay Now" multiple times would create multiple payment records.
+        if (paymentRepository.findByAuctionId(auctionId).isPresent()) {
+            return "This auction has already been paid for.";
         }
 
         // Generate a unique transaction ID from the current timestamp

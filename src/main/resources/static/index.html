@@ -295,22 +295,22 @@
                         </div>
                         ${p.status === 'ACTIVE' ? `
 <div class="flex gap-3 justify-end pt-3">
-    <button onclick="activateProduct(${p.id})"
-        class="px-4 py-2 bg-brand text-white text-sm font-semibold rounded-lg">
-        Activate
-    </button>
-
-    <button onclick="deleteProduct(${p.id})"
-        class="px-4 py-2 bg-red-500 text-white text-sm font-semibold rounded-lg">
-        Delete
-    </button>
-
     <button onclick="createAuctionFromProduct(${p.id}, ${p.startingPrice}, '${p.name}')"
         id="createAuctionBtn"
-        class="px-4 py-2 bg-purple-600 text-white text-sm font-semibold rounded-lg">
-        Create Auction
+        class="px-4 py-2 bg-purple-600 text-white text-sm font-semibold rounded-lg hover:bg-purple-700 transition">
+        🔨 Create Auction
     </button>
-</div>` : ''}
+</div>` : `
+<div class="flex gap-3 justify-end pt-3">
+    <button onclick="activateProduct(${p.id})"
+        class="px-4 py-2 bg-brand text-white text-sm font-semibold rounded-lg hover:bg-brand-dark transition">
+        ✅ Activate
+    </button>
+    <button onclick="deleteProduct(${p.id})"
+        class="px-4 py-2 bg-red-500 text-white text-sm font-semibold rounded-lg hover:bg-red-600 transition">
+        🗑 Delete
+    </button>
+</div>`}
                     </div>`;
                 openModal();
                 const user = JSON.parse(localStorage.getItem("user"));

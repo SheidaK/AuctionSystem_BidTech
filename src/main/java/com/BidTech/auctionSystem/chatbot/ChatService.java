@@ -32,7 +32,7 @@ public class ChatService {
     private static final String OLLAMA_URL = "http://ollama:11434/api/chat";
 
     /** Model name to use — read from OLLAMA_MODEL env var, defaults to llama3.2 */
-    @org.springframework.beans.factory.annotation.Value("${OLLAMA_MODEL:llama3.2}")
+    @org.springframework.beans.factory.annotation.Value("${OLLAMA_MODEL:gemma3:1b}")
     private String model;
 
     @Autowired
@@ -63,33 +63,6 @@ public class ChatService {
         "If you don't have the information, say so honestly. " +
         "Keep responses concise and friendly.";
 
-    /**
-     * System prompt template for authenticated users.
-     * Includes strict anti-hallucination rules and rephrase guidance.
-     */
-    private static final String AUTH_SYSTEM_PROMPT_TEMPLATE =
-        "You are a helpful assistant for BidTech, an online auction platform. " +
-        "The user is authenticated (userId: {userId}). " +
-        "\n\nCRITICAL RULES — YOU MUST FOLLOW THESE:\n" +
-        "1. ONLY use the live data provided below to answer questions about products, auctions, bids, and payments.\n" +
-        "2. NEVER invent, fabricate, or hallucinate product names, prices, auction details, or any data.\n" +
-        "3. If the live data below does not contain what the user is asking about, say: " +
-        "\"Based on our current catalogue, I don't see that item. Here's what we currently have available:\" " +
-        "and then list what IS in the data.\n" +
-        "4. If you cannot answer the question with the data provided, suggest the user rephrase their question. " +
-        "Offer specific rephrasing examples like:\n" +
-        "   - \"Show me all products\" to see the full catalogue\n" +
-        "   - \"What's the highest bid on auction 1?\" for auction details\n" +
-        "   - \"How much time is left on auction 2?\" for remaining time\n" +
-        "   - \"Bid $200 on auction 3\" to place a bid\n" +
-        "   - \"What should I bid to win auction 1?\" for bid recommendations\n" +
-        "\n\nAvailable actions you can perform on their behalf (with confirmation):\n" +
-        "- Place a bid: say something like 'bid $X on auction Y'\n" +
-        "- Process a payment: say something like 'pay for auction Y'\n" +
-        "\nLive data retrieved for this query:\n{liveData}\n\n" +
-        "Answer the user's question using ONLY the live data above. " +
-        "If the data says there are no matching items, tell the user honestly — do not make up alternatives.";
-
     /** Human agent handoff message — returned for any non-auction-search request */
     private static final String HUMAN_AGENT_MSG =
         "I can only help with searching auctions and products right now. " +
@@ -101,27 +74,9 @@ public class ChatService {
         "• \"What's the highest bid on auction 1?\"\n" +
         "• \"How much time is left on auction 2?\"";
 
-    /** System prompt for keyword extraction — Ollama returns ONLY search keywords, nothing else */
-    private static final String KEYWORD_EXTRACTION_PROMPT =
-        "You are a keyword extractor for an auction search system. " +
-        "The user is looking for products or auctions. " +
-        "Your ONLY job is to extract 1-3 search keywords from the user's message. " +
-        "Return ONLY the keywords separated by commas. No sentences, no explanations, no data. " +
-        "Examples:\n" +
-        "  User: 'any laptop in auction?' → laptop\n" +
-        "  User: 'dell laptop under 1000' → dell,laptop\n" +
-        "  User: 'show me watches' → watch\n" +
-        "  User: 'I want a vintage rolex' → vintage,rolex\n" +
-        "  User: 'electronics for sale' → electronics\n" +
-        "  User: 'any cameras available?' → camera\n" +
-        "  User: 'show me all products' → all\n" +
-        "  User: 'what do you have?' → all\n" +
-        "Return ONLY keywords. Nothing else.";
-
     /**
-     * Processes a chat request. For auction search intents, uses Ollama ONLY to extract
-     * search keywords, then queries the database and returns results directly.
-     * Ollama never generates the user-facing response for search queries.
+     * Processes a chat request. All search intents use IntentResolver keywords
+     * and query the database directly — no Ollama involved in search responses.
      */
     public String processChat(ChatRequest request) {
         String message = request.getMessage();
@@ -156,81 +111,28 @@ public class ChatService {
         // ── Auction-specific intents (status, highest bid, etc.) → direct DB result ──
         if (intent != Intent.SEARCH_PRODUCTS && intent != Intent.LIST_ACTIVE_PRODUCTS
                 && intent != Intent.GET_PRODUCT_BY_CATEGORY) {
-            // These intents already have params extracted by IntentResolver — no Ollama needed
             return fetchLiveData(intent, params, userId);
         }
 
-        // ── Search intents → use Ollama ONLY for keyword extraction ──────────
-        // Step 1: Ask Ollama to extract search keywords from the user's message.
-        //         Ollama returns ONLY keywords like "laptop" or "dell,laptop" — no prose.
-        String keywords = extractKeywordsViaOllama(request.getHistory(), message);
-
-        // Step 2: Use the extracted keywords to query the catalogue database.
-        //         If Ollama returned "all", fetch the full catalogue.
-        //         Otherwise, search by each keyword and combine results.
-        if (keywords == null || keywords.isBlank() || keywords.trim().equalsIgnoreCase("all")) {
-            return "📦 Here are all available products:\n\n" + actionExecutor.fetchActiveProducts();
-        }
-
-        // Search with each keyword and collect results
-        String[] keywordList = keywords.split(",");
-        StringBuilder allResults = new StringBuilder();
-        boolean foundAny = false;
-
-        for (String kw : keywordList) {
-            String trimmed = kw.trim().toLowerCase();
-            if (trimmed.isEmpty()) continue;
-
-            // Check if it's a category name first
-            String[] categories = {"electronics", "jewelry", "art", "books", "other"};
-            boolean isCategory = false;
-            for (String cat : categories) {
-                if (trimmed.equals(cat)) {
-                    String catResult = actionExecutor.fetchProductsByCategory(
-                        cat.substring(0, 1).toUpperCase() + cat.substring(1));
-                    if (!catResult.contains("No products found")) {
-                        allResults.append(catResult).append("\n");
-                        foundAny = true;
-                    }
-                    isCategory = true;
-                    break;
-                }
+        // ── SEARCH_PRODUCTS → use IntentResolver's keyword directly, no Ollama ──
+        // IntentResolver already extracted the keyword (e.g. "laptop") from the message.
+        // We query the DB directly — Ollama is not involved in the search response.
+        if (intent == Intent.SEARCH_PRODUCTS) {
+            String keyword = params.getOrDefault("keyword", "");
+            if (keyword.isEmpty()) {
+                return "📦 Here are all available products:\n\n" + actionExecutor.fetchActiveProducts();
             }
-
-            // If not a category, do a keyword search by name/description
-            if (!isCategory) {
-                var results = actionExecutor.searchProducts(trimmed);
-                if (!results.contains("No products found")) {
-                    allResults.append(results).append("\n");
-                    foundAny = true;
-                }
+            String results = actionExecutor.searchProducts(keyword);
+            // Use startsWith for consistent checking — ActionExecutor always starts with "No products found"
+            if (results.startsWith("No products found")) {
+                return "No auctions currently available matching '" + keyword + "'. " +
+                    "Try asking \"show me all products\" to see the full catalogue.";
             }
+            return "🔍 Here are the results:\n\n" + results;
         }
 
-        // Step 3: Return the database results directly — no Ollama in the response path
-        if (foundAny) {
-            return "🔍 Here are the results:\n\n" + allResults.toString().trim();
-        } else {
-            return "No auctions currently available matching your search. " +
-                "Try asking \"show me all products\" to see the full catalogue.";
-        }
-    }
-
-    /**
-     * Calls Ollama with the keyword extraction prompt to get search keywords from the user's message.
-     * Returns ONLY the keywords (e.g. "laptop" or "dell,laptop") — no prose.
-     * Falls back to null if Ollama is unavailable.
-     */
-    private String extractKeywordsViaOllama(List<ChatMessage> history, String userMessage) {
-        try {
-            String raw = callOllama(KEYWORD_EXTRACTION_PROMPT, history, userMessage);
-            if (raw == null) return null;
-            // Clean up — Ollama might add quotes, periods, or extra whitespace
-            return raw.replaceAll("[\"'.]", "").trim();
-        } catch (Exception e) {
-            // Ollama unavailable — fall back to null (will show full catalogue)
-            return null;
-        }
+        // ── LIST_ACTIVE_PRODUCTS / GET_PRODUCT_BY_CATEGORY → direct DB result ──
+        return "📦 " + fetchLiveData(intent, params, userId);
     }
 
     /**
@@ -243,6 +145,7 @@ public class ChatService {
             case SEARCH_PRODUCTS:
             case GET_PRODUCT_BY_CATEGORY:
             case GET_AUCTION_STATUS:
+            case LIST_ACTIVE_AUCTIONS:
             case GET_HIGHEST_BID:
             case GET_REMAINING_TIME:
             case GET_BID_HISTORY:
@@ -280,6 +183,9 @@ public class ChatService {
             case GET_AUCTION_STATUS:
                 return actionExecutor.fetchAuctionStatus(
                     Long.parseLong(params.getOrDefault("auctionId", "0")));
+
+            case LIST_ACTIVE_AUCTIONS:
+                return actionExecutor.fetchActiveAuctions();
 
             case GET_HIGHEST_BID:
                 return actionExecutor.fetchHighestBid(

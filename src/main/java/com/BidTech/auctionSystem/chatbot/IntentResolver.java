@@ -141,8 +141,12 @@ public class IntentResolver {
                 || lower.contains("top offer") || lower.contains("best bid")
                 || lower.contains("highest offer")) {
             Matcher m = AUCTION_ID_PATTERN.matcher(lower);
-            if (m.find()) params.put("auctionId", m.group(1));
-            return new ResolvedIntent(Intent.GET_HIGHEST_BID, params, null);
+            if (m.find()) {
+                params.put("auctionId", m.group(1));
+                return new ResolvedIntent(Intent.GET_HIGHEST_BID, params, null);
+            }
+            // No auction ID specified — show all active auctions so user can pick one
+            return new ResolvedIntent(Intent.LIST_ACTIVE_AUCTIONS, params, null);
         }
 
         // GET_REMAINING_TIME: "time left", "how long", "when does it end", "remaining time"
@@ -150,17 +154,31 @@ public class IntentResolver {
                 || lower.contains("when does it end") || lower.contains("remaining time")
                 || lower.contains("time remaining") || lower.contains("ends")) {
             Matcher m = AUCTION_ID_PATTERN.matcher(lower);
-            if (m.find()) params.put("auctionId", m.group(1));
-            return new ResolvedIntent(Intent.GET_REMAINING_TIME, params, null);
+            if (m.find()) {
+                params.put("auctionId", m.group(1));
+                return new ResolvedIntent(Intent.GET_REMAINING_TIME, params, null);
+            }
+            return new ResolvedIntent(Intent.LIST_ACTIVE_AUCTIONS, params, null);
         }
 
         // GET_AUCTION_STATUS: "auction status", "is auction X active", "tell me about auction X"
+        // Only match if a specific auction ID is mentioned — otherwise fall through to LIST_ACTIVE_AUCTIONS
         if (lower.contains("auction status") || lower.contains("about auction")
-                || (lower.contains("auction") && lower.contains("active"))
+                || (lower.contains("auction") && lower.contains("active") && AUCTION_ID_PATTERN.matcher(lower).find())
                 || (lower.contains("auction") && lower.contains("status"))) {
             Matcher m = AUCTION_ID_PATTERN.matcher(lower);
-            if (m.find()) params.put("auctionId", m.group(1));
-            return new ResolvedIntent(Intent.GET_AUCTION_STATUS, params, null);
+            if (m.find()) {
+                params.put("auctionId", m.group(1));
+                return new ResolvedIntent(Intent.GET_AUCTION_STATUS, params, null);
+            }
+        }
+
+        // LIST_ACTIVE_AUCTIONS: general auction queries without a specific ID
+        // "how many auctions", "list auctions", "active auctions", "all auctions", "any auctions"
+        if (lower.contains("auction") && (lower.contains("list") || lower.contains("active")
+                || lower.contains("how many") || lower.contains("all") || lower.contains("any")
+                || lower.contains("show") || lower.contains("current"))) {
+            return new ResolvedIntent(Intent.LIST_ACTIVE_AUCTIONS, params, null);
         }
 
         // GET_PRODUCT_BY_CATEGORY: "show electronics", "books for sale", "jewelry listings"

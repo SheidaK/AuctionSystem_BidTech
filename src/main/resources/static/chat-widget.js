@@ -48,85 +48,114 @@ const CONFIRM_PREFIX = 'CONFIRM_ACTION|';
  */
 function injectWidget() {
     const html = `
-    <!-- ── Chat Toggle Button ── floating in bottom-right corner ── -->
-    <button id="chat-toggle-btn" title="Open BidTech Assistant"
-        style="position:fixed;bottom:24px;right:24px;z-index:9999;
-               width:56px;height:56px;border-radius:50%;border:none;cursor:pointer;
-               background:linear-gradient(135deg,#667eea,#764ba2);
-               color:white;font-size:24px;box-shadow:0 4px 16px rgba(102,126,234,0.5);
-               transition:transform 0.2s;">
+    <!-- ── Chat Toggle Button ── polished floating button ── -->
+    <button id="chat-toggle-btn" title="Chat with BidTech Assistant"
+        style="position:fixed;bottom:28px;right:28px;z-index:9999;
+               width:60px;height:60px;border-radius:50%;border:none;cursor:pointer;
+               background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+               color:white;font-size:26px;
+               box-shadow:0 6px 20px rgba(102,126,234,0.45),0 2px 8px rgba(0,0,0,0.15);
+               transition:all 0.3s ease;">
         💬
     </button>
 
-    <!-- ── Chat Panel ── hidden by default, shown only when toggle is clicked ── -->
+    <!-- ── Chat Panel ── professional, clean design ── -->
     <div id="chat-panel"
-        style="display:none;position:fixed;bottom:92px;right:24px;z-index:9998;
-               width:360px;max-height:520px;border-radius:16px;overflow:hidden;
-               box-shadow:0 8px 32px rgba(0,0,0,0.25);
-               flex-direction:column;font-family:'Segoe UI',sans-serif;">
+        style="display:none;position:fixed;bottom:100px;right:28px;z-index:9998;
+               width:380px;max-height:540px;border-radius:20px;overflow:hidden;
+               box-shadow:0 12px 40px rgba(0,0,0,0.2),0 4px 12px rgba(0,0,0,0.1);
+               flex-direction:column;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+               border:1px solid rgba(255,255,255,0.1);">
 
-        <!-- Header with End Chat button -->
-        <div style="background:linear-gradient(135deg,#4a3f8f,#5a2d82);
-                    color:white;padding:14px 16px;display:flex;
+        <!-- Header — gradient with subtle glass effect -->
+        <div style="background:linear-gradient(135deg,#4a3f8f 0%,#5a2d82 100%);
+                    color:white;padding:16px 20px;display:flex;
                     justify-content:space-between;align-items:center;">
-            <span style="font-weight:700;font-size:15px;">🤖 BidTech Assistant</span>
-            <div style="display:flex;gap:6px;">
-                <button id="chat-end-btn" title="End chat session and clear history"
-                    style="background:rgba(220,53,69,0.8);border:none;color:white;
-                           padding:4px 10px;border-radius:6px;cursor:pointer;font-size:12px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:36px;height:36px;border-radius:50%;
+                            background:rgba(255,255,255,0.15);display:flex;
+                            align-items:center;justify-content:center;font-size:18px;">🤖</div>
+                <div>
+                    <div style="font-weight:700;font-size:14px;letter-spacing:0.3px;">BidTech Assistant</div>
+                    <div style="font-size:11px;opacity:0.75;margin-top:1px;">Online • Ready to help</div>
+                </div>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center;">
+                <button id="chat-end-btn" title="End chat session"
+                    style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);
+                           color:white;padding:5px 12px;border-radius:8px;cursor:pointer;
+                           font-size:11px;font-weight:600;transition:background 0.2s;">
                     End Chat
                 </button>
-                <button id="chat-close-btn" title="Minimize (keeps session)"
-                    style="background:none;border:none;color:white;
-                           font-size:20px;cursor:pointer;line-height:1;">
+                <button id="chat-close-btn" title="Minimize"
+                    style="background:rgba(255,255,255,0.1);border:none;color:white;
+                           width:30px;height:30px;border-radius:8px;cursor:pointer;
+                           font-size:16px;display:flex;align-items:center;justify-content:center;
+                           transition:background 0.2s;">
                     ✕
                 </button>
             </div>
         </div>
 
-        <!-- Messages area -->
+        <!-- Messages area — clean background -->
         <div id="chat-messages"
-            style="flex:1;overflow-y:auto;padding:16px;background:#f8f9fa;
-                   display:flex;flex-direction:column;gap:10px;min-height:200px;max-height:340px;">
+            style="flex:1;overflow-y:auto;padding:18px;background:#f5f6fa;
+                   display:flex;flex-direction:column;gap:12px;
+                   min-height:220px;max-height:340px;">
         </div>
 
         <!-- Typing indicator -->
         <div id="chat-typing"
-            style="display:none;padding:8px 16px;background:#f8f9fa;">
-            <div style="background:white;border-radius:12px;padding:10px 14px;
-                        display:inline-flex;gap:4px;box-shadow:0 1px 4px rgba(0,0,0,0.1);">
-                <span class="dot" style="width:8px;height:8px;border-radius:50%;
-                    background:#667eea;animation:bounce 1.2s infinite;"></span>
-                <span class="dot" style="width:8px;height:8px;border-radius:50%;
-                    background:#667eea;animation:bounce 1.2s infinite 0.2s;"></span>
-                <span class="dot" style="width:8px;height:8px;border-radius:50%;
-                    background:#667eea;animation:bounce 1.2s infinite 0.4s;"></span>
+            style="display:none;padding:8px 18px;background:#f5f6fa;">
+            <div style="background:white;border-radius:14px;padding:10px 16px;
+                        display:inline-flex;gap:5px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+                <span class="chat-dot" style="width:7px;height:7px;border-radius:50%;
+                    background:#667eea;animation:chatBounce 1.2s infinite;"></span>
+                <span class="chat-dot" style="width:7px;height:7px;border-radius:50%;
+                    background:#667eea;animation:chatBounce 1.2s infinite 0.2s;"></span>
+                <span class="chat-dot" style="width:7px;height:7px;border-radius:50%;
+                    background:#667eea;animation:chatBounce 1.2s infinite 0.4s;"></span>
             </div>
         </div>
 
-        <!-- Input area -->
-        <div style="padding:12px;background:white;border-top:1px solid #e9ecef;
-                    display:flex;gap:8px;">
-            <input id="chat-input" type="text" placeholder="Ask me anything..."
-                style="flex:1;padding:10px 14px;border:2px solid #dee2e6;border-radius:10px;
-                       font-size:14px;outline:none;font-family:inherit;"
-                onfocus="this.style.borderColor='#667eea'"
-                onblur="this.style.borderColor='#dee2e6'">
+        <!-- Input area — refined with subtle shadow -->
+        <div style="padding:14px 16px;background:white;border-top:1px solid #eef0f4;
+                    display:flex;gap:10px;align-items:center;">
+            <input id="chat-input" type="text" placeholder="Type your message..."
+                style="flex:1;padding:11px 16px;border:1.5px solid #e2e5ea;border-radius:12px;
+                       font-size:13.5px;outline:none;font-family:inherit;
+                       background:#f8f9fb;transition:all 0.2s;"
+                onfocus="this.style.borderColor='#667eea';this.style.background='white';this.style.boxShadow='0 0 0 3px rgba(102,126,234,0.1)'"
+                onblur="this.style.borderColor='#e2e5ea';this.style.background='#f8f9fb';this.style.boxShadow='none'">
             <button id="chat-send-btn"
-                style="padding:10px 16px;background:linear-gradient(135deg,#667eea,#764ba2);
-                       color:white;border:none;border-radius:10px;cursor:pointer;
-                       font-size:14px;font-weight:600;">
+                style="padding:11px 18px;background:linear-gradient(135deg,#667eea,#764ba2);
+                       color:white;border:none;border-radius:12px;cursor:pointer;
+                       font-size:13px;font-weight:600;letter-spacing:0.3px;
+                       box-shadow:0 2px 8px rgba(102,126,234,0.3);
+                       transition:all 0.2s;">
                 Send
             </button>
         </div>
     </div>
 
     <style>
-        @keyframes bounce {
+        @keyframes chatBounce {
             0%, 60%, 100% { transform: translateY(0); }
-            30% { transform: translateY(-6px); }
+            30% { transform: translateY(-5px); }
         }
-        #chat-toggle-btn:hover { transform: scale(1.1); }
+        #chat-toggle-btn:hover {
+            transform: scale(1.08) translateY(-2px);
+            box-shadow: 0 8px 28px rgba(102,126,234,0.5), 0 4px 12px rgba(0,0,0,0.15);
+        }
+        #chat-end-btn:hover { background: rgba(255,255,255,0.22) !important; }
+        #chat-close-btn:hover { background: rgba(255,255,255,0.2) !important; }
+        #chat-send-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102,126,234,0.4);
+        }
+        #chat-messages::-webkit-scrollbar { width: 5px; }
+        #chat-messages::-webkit-scrollbar-track { background: transparent; }
+        #chat-messages::-webkit-scrollbar-thumb { background: #d0d5dd; border-radius: 10px; }
     </style>`;
 
     const container = document.createElement('div');
@@ -164,7 +193,7 @@ function bindEvents() {
     document.getElementById('chat-send-btn').addEventListener('click', sendMessage);
 
     // "End Chat" button — explicitly ends the session and clears all history
-    document.getElementById('chat-end-btn').addEventListener('click', endChatSession);
+    document.getElementById('chat-end-btn').addEventListener('click', () => endChatSession(false));
 
     // Enter key sends the message
     document.getElementById('chat-input').addEventListener('keydown', e => {
@@ -283,13 +312,9 @@ function showGreeting() {
 
     let greeting;
     if (isLoggedIn) {
-        greeting = `Hi ${name}! 👋 Welcome back to BidTech. I can help you search products and auctions — ` +
-            `just ask me things like "show me all products", "any laptops?", or "what's the highest bid on auction 1?". ` +
-            `For anything else, I'll connect you with a human agent.`;
+        greeting = `Hi ${name}! 👋\n\nWelcome back to BidTech. I can help you search our auction catalogue.\n\nTry asking:\n• "Show me all products"\n• "Any laptops?"\n• "What's the highest bid on auction 1?"\n• "Show me electronics"\n• "List active auctions"`;
     } else {
-        greeting = `Hello, ${name}! 👋 Welcome to BidTech. I can answer general questions about ` +
-            `how the platform works. Log in to search live auctions and products. ` +
-            `How can I help you?`;
+        greeting = `Hello! 👋\n\nWelcome to BidTech. I can answer general questions about how the platform works.\n\nLog in to search live auctions and products.`;
     }
 
     appendMessage(greeting, 'assistant');
@@ -342,16 +367,23 @@ function appendMessage(text, role, isHtml = false) {
 
     const bubble = document.createElement('div');
     bubble.style.cssText = `
-        max-width:80%;padding:10px 14px;border-radius:${isUser ? '16px 16px 4px 16px' : '16px 16px 16px 4px'};
-        font-size:14px;line-height:1.5;
+        max-width:82%;padding:12px 16px;
+        border-radius:${isUser ? '18px 18px 4px 18px' : '18px 18px 18px 4px'};
+        font-size:13.5px;line-height:1.6;letter-spacing:0.1px;
         background:${isUser ? 'linear-gradient(135deg,#667eea,#764ba2)' : 'white'};
-        color:${isUser ? 'white' : '#333'};
-        box-shadow:0 1px 4px rgba(0,0,0,0.1);`;
+        color:${isUser ? 'white' : '#374151'};
+        box-shadow:${isUser ? '0 2px 8px rgba(102,126,234,0.25)' : '0 1px 4px rgba(0,0,0,0.06)'};`;
 
     if (isHtml) {
         bubble.innerHTML = text;
     } else {
-        bubble.textContent = text;
+        // Convert newlines to <br> so multi-line responses (product lists, etc.)
+        // render properly in the chat bubble instead of collapsing into one line
+        bubble.innerHTML = text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/\n/g, '<br>');
     }
 
     wrapper.appendChild(bubble);

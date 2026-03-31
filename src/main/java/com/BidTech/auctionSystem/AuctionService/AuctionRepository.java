@@ -13,4 +13,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
  */
 public interface AuctionRepository extends JpaRepository<Auction, Long> {
     boolean existsByItemIdAndActiveTrue(Long itemId);
+
+    /** Finds all currently active auctions (not yet ended). */
+    java.util.List<Auction> findByActiveTrue();
 }

@@ -31,6 +31,9 @@ public enum Intent {
     /** Trigger phrases: "auction status", "is auction X active", "tell me about auction X" */
     GET_AUCTION_STATUS,
 
+    /** Trigger phrases: "active auctions", "list auctions", "how many auctions", "all auctions" */
+    LIST_ACTIVE_AUCTIONS,
+
     /** Trigger phrases: "highest bid", "current bid", "top offer", "best bid on auction X" */
     GET_HIGHEST_BID,
 

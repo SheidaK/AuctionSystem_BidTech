@@ -1,5 +1,13 @@
 package com.BidTech.auctionSystem.chatbot;
 
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
 import com.BidTech.auctionSystem.AuctionService.Auction;
 import com.BidTech.auctionSystem.AuctionService.AuctionRepository;
 import com.BidTech.auctionSystem.AuctionService.Bid;
@@ -8,13 +16,6 @@ import com.BidTech.auctionSystem.AuctionService.InvalidBidException;
 import com.BidTech.auctionSystem.CatalogueService.ProductRepository;
 import com.BidTech.auctionSystem.CatalogueService.ProductStatus;
 import com.BidTech.auctionSystem.payment.repository.PaymentRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * ActionExecutor — executes resolved intents against the live BidTech data layer.
@@ -53,22 +54,37 @@ public class ActionExecutor {
      * @return a plain-English summary of matching products, or a "no results" message
      */
     public String searchProducts(String keyword) {
-        // searchByNameOrDescription does: WHERE LOWER(name) LIKE %keyword% OR LOWER(description) LIKE %keyword%
         var results = productRepository.searchByNameOrDescription(keyword);
         if (results.isEmpty()) {
-            // No matches — also include the full catalogue so Ollama can suggest alternatives
-            String allProducts = fetchActiveProducts();
-            return "No products found matching '" + keyword + "'.\n\n" +
-                "Here is the full catalogue for reference:\n" + allProducts;
+            return "No products found matching '" + keyword + "'.";
         }
-        StringBuilder sb = new StringBuilder("Search results for '" + keyword + "' (" + results.size() + " found):\n");
-        results.forEach(p -> sb.append(String.format(
-            "- ID %d: %s (%s) — Starting price: $%.2f — Status: %s — %s\n",
-            p.getId(), p.getName(), p.getCategory(),
-            p.getStartingPrice() != null ? p.getStartingPrice().doubleValue() : 0.0,
-            p.getStatus(),
-            p.getDescription() != null ? p.getDescription() : "No description")));
-        return sb.toString();
+
+        // Deduplicate by name — seeder may create duplicates
+        java.util.LinkedHashMap<String, com.BidTech.auctionSystem.CatalogueService.Product> unique = new java.util.LinkedHashMap<>();
+        for (var p : results) {
+            if (!unique.containsKey(p.getName())) {
+                unique.put(p.getName(), p);
+            }
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("Found ").append(unique.size()).append(" result(s) for '").append(keyword).append("':\n\n");
+        int index = 1;
+        for (var p : unique.values()) {
+            sb.append(String.format(
+                "%d. %s\n" +
+                "   📂 Category: %s\n" +
+                "   💰 Starting Price: $%.2f\n" +
+                "   📋 Status: %s\n" +
+                "   📝 %s\n\n",
+                index++,
+                p.getName(),
+                p.getCategory(),
+                p.getStartingPrice() != null ? p.getStartingPrice().doubleValue() : 0.0,
+                p.getStatus(),
+                p.getDescription() != null ? p.getDescription() : "No description"));
+        }
+        return sb.toString().trim();
     }
 
     // ── Read Methods ──────────────────────────────────────────────────────────
@@ -79,18 +95,37 @@ public class ActionExecutor {
      * @return a plain-English list of active products, or a "no products" message
      */
     public String fetchActiveProducts() {
-        // Query only ACTIVE products — DRAFT and INACTIVE are not visible to buyers
         var products = productRepository.findByStatus(ProductStatus.ACTIVE);
         if (products.isEmpty()) {
             return "There are currently no active products in the catalogue.";
         }
-        StringBuilder sb = new StringBuilder("Active products in the catalogue:\n");
-        products.forEach(p -> sb.append(String.format(
-            "- ID %d: %s (%s) — Starting price: $%.2f — Condition: %s\n",
-            p.getId(), p.getName(), p.getCategory(),
-            p.getStartingPrice() != null ? p.getStartingPrice().doubleValue() : 0.0,
-            p.getCondition() != null ? p.getCondition() : "Not specified")));
-        return sb.toString();
+
+        // Deduplicate by product name — the seeder may create duplicates on restart.
+        // Keep only the first occurrence of each product name.
+        java.util.LinkedHashMap<String, com.BidTech.auctionSystem.CatalogueService.Product> unique = new java.util.LinkedHashMap<>();
+        for (var p : products) {
+            if (!unique.containsKey(p.getName())) {
+                unique.put(p.getName(), p);
+            }
+        }
+
+        // Format as a clean, readable list with emoji and clear structure
+        StringBuilder sb = new StringBuilder();
+        sb.append("Found ").append(unique.size()).append(" active product(s):\n\n");
+        int index = 1;
+        for (var p : unique.values()) {
+            sb.append(String.format(
+                "%d. %s\n" +
+                "   📂 Category: %s\n" +
+                "   💰 Starting Price: $%.2f\n" +
+                "   📦 Condition: %s\n\n",
+                index++,
+                p.getName(),
+                p.getCategory(),
+                p.getStartingPrice() != null ? p.getStartingPrice().doubleValue() : 0.0,
+                p.getCondition() != null ? p.getCondition() : "Not specified"));
+        }
+        return sb.toString().trim();
     }
 
     /**
@@ -104,13 +139,63 @@ public class ActionExecutor {
         if (products.isEmpty()) {
             return "No products found in the " + category + " category.";
         }
-        StringBuilder sb = new StringBuilder("Products in " + category + ":\n");
-        products.forEach(p -> sb.append(String.format(
-            "- ID %d: %s — $%.2f — Status: %s\n",
-            p.getId(), p.getName(),
-            p.getStartingPrice() != null ? p.getStartingPrice().doubleValue() : 0.0,
-            p.getStatus())));
-        return sb.toString();
+
+        // Deduplicate by name
+        java.util.LinkedHashMap<String, com.BidTech.auctionSystem.CatalogueService.Product> unique = new java.util.LinkedHashMap<>();
+        for (var p : products) {
+            if (!unique.containsKey(p.getName())) {
+                unique.put(p.getName(), p);
+            }
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("Found ").append(unique.size()).append(" product(s) in ").append(category).append(":\n\n");
+        int index = 1;
+        for (var p : unique.values()) {
+            sb.append(String.format(
+                "%d. %s\n" +
+                "   💰 Starting Price: $%.2f\n" +
+                "   📋 Status: %s\n\n",
+                index++,
+                p.getName(),
+                p.getStartingPrice() != null ? p.getStartingPrice().doubleValue() : 0.0,
+                p.getStatus()));
+        }
+        return sb.toString().trim();
+    }
+
+    /**
+     * Fetches all currently active auctions and returns a formatted summary.
+     *
+     * @return a readable list of active auctions, or a "no auctions" message
+     */
+    public String fetchActiveAuctions() {
+        var auctions = auctionRepository.findByActiveTrue();
+        if (auctions.isEmpty()) {
+            return "There are currently no active auctions.\n" +
+                "An admin needs to activate products and create auctions before they appear here.\n" +
+                "Try \"show me all products\" to see what's in the catalogue.";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("Found ").append(auctions.size()).append(" active auction(s):\n\n");
+        int index = 1;
+        for (var a : auctions) {
+            // Calculate remaining time for each auction
+            long secsLeft = java.time.Duration.between(
+                java.time.LocalDateTime.now(), a.getEndTime()).getSeconds();
+            String timeStr = secsLeft <= 0 ? "Ending soon"
+                : String.format("%dm %ds left", secsLeft / 60, secsLeft % 60);
+
+            sb.append(String.format(
+                "%d. Auction #%d\n" +
+                "   📦 Item ID: %d\n" +
+                "   💰 Current Highest Bid: $%.2f\n" +
+                "   ⏱ Time Remaining: %s\n\n",
+                index++, a.getId(), a.getItemId(),
+                a.getHighestBid(), timeStr));
+        }
+        return sb.toString().trim();
     }
 
     /**

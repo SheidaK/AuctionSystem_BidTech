@@ -23,6 +23,16 @@ public class LoadCatalogueDatabase {
     @Bean
     CommandLineRunner initCatalogueDatabase(ProductRepository productRepository) {
         return args -> {
+            // Only seed if the catalogue is empty — prevents duplicate products
+            // from accumulating across container restarts. The data persists in
+            // the bidtech-data Docker volume, so seeding only needs to happen once.
+            if (productRepository.count() > 0) {
+                log.info("Catalogue already has " + productRepository.count() + " products — skipping seed.");
+                return;
+            }
+
+            log.info("Catalogue is empty — seeding sample products...");
+
             // Helper to create end dates
             Calendar cal = Calendar.getInstance();
             
