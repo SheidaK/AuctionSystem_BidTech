@@ -334,8 +334,11 @@
 
             showResult('endResult', `🏁 Auction #${d.id} ended. ${winner}`, 'success');
 
-            showAuctionEndModal(d.id);
-            loadAuctions();
+            const user = JSON.parse(localStorage.getItem("user"));
+
+            if (d.highestBidderId === user.id) {
+                showAuctionEndModal(d.id);
+            }            loadAuctions();
 
         } catch (err) {
             showResult('endResult', `❌ ${err.message}`, 'error');
@@ -364,7 +367,7 @@
         window.location.href = '/login.html';
     }
 
-    let lastNotificationCount = 0;
+    /*let lastNotificationCount = 0;
 
     async function checkNotifications() {
         try {
@@ -396,6 +399,44 @@
                 }
 
                 lastNotificationCount = notifications.length;
+            }
+
+        } catch (err) {
+            console.error("Notification check failed", err);
+        }
+    }*/
+    let lastProcessedNotification = null;
+
+    async function checkNotifications() {
+        try {
+            const res = await fetch('/api/notifications');
+            const notifications = await res.json();
+
+            if (!notifications.length) return;
+
+            const latest = notifications[0];
+
+            // 🔥 Only process NEW message
+            if (latest === lastProcessedNotification) return;
+
+            lastProcessedNotification = latest;
+
+            const user = JSON.parse(localStorage.getItem("user"));
+
+            if (
+                latest.includes("Auction") &&
+                latest.includes("ended") &&
+                latest.includes(`User #${user.id}`)
+            ) {
+                const match = latest.match(/Auction\s#?(\d+)/);
+
+                if (match) {
+                    const auctionId = match[1];
+
+                    console.log("AUTO END DETECTED:", auctionId);
+
+                    showAuctionEndModal(auctionId);
+                }
             }
 
         } catch (err) {
