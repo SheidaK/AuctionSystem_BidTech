@@ -38,25 +38,19 @@
 
     <div class="p-6">
         <div class="flex justify-between items-center mb-6">
-            <button onclick="loadNotifications()"
-                    class="px-5 py-2 bg-brand text-white text-sm font-semibold rounded-lg hover:bg-brand-dark transition">
-                🔄 Refresh
-            </button>
-            <button onclick="clearNotifications()"
-                    class="px-5 py-2 bg-red-500 text-white text-sm font-semibold rounded-lg hover:bg-red-600 transition">
-                🗑️ Clear All
-            </button>
+            <button onclick="loadNotifications()" class="px-5 py-2 bg-brand text-white text-sm font-semibold rounded-lg hover:bg-brand-dark transition">🔄 Refresh</button>
+            <button onclick="clearNotifications()" class="px-5 py-2 bg-red-500 text-white text-sm font-semibold rounded-lg hover:bg-red-600 transition">🗑️ Clear All</button>
         </div>
 
-        <div id="notificationList" class="space-y-3">
-
-        </div>
+        <div id="notificationList" class="space-y-3"></div>
 
         <div id="emptyState" class="hidden text-center py-16 text-gray-400">
             <div class="text-6xl mb-4">🔔</div>
             <p class="text-lg">No notifications yet</p>
             <p class="text-sm">End an auction or complete a payment to see updates here</p>
         </div>
+
+        <div id="errorDisplay" class="hidden mt-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-800 text-sm"></div>
     </div>
 </div>
 
@@ -64,10 +58,21 @@
     async function loadNotifications() {
         const list = document.getElementById('notificationList');
         const empty = document.getElementById('emptyState');
+        const errorDisplay = document.getElementById('errorDisplay');
+
+        errorDisplay.classList.add('hidden');
+        console.log("🔄 Fetching from /api/notifications...");
 
         try {
             const res = await fetch('/api/notifications');
+            console.log("📡 Response status:", res.status);
+
+            if (!res.ok) {
+                throw new Error(`HTTP error! Status: ${res.status}`);
+            }
+
             const notifications = await res.json();
+            console.log("✅ Received notifications:", notifications);
 
             list.innerHTML = '';
 
@@ -82,16 +87,18 @@
                 const div = document.createElement('div');
                 div.className = 'bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex items-start gap-3';
                 div.innerHTML = `
-                        <div class="text-2xl">🔔</div>
-                        <div class="flex-1">
-                            <p class="text-gray-800">${msg}</p>
-                        </div>
-                    `;
+                    <div class="text-2xl">🔔</div>
+                    <div class="flex-1">
+                        <p class="text-gray-800">${msg}</p>
+                    </div>
+                `;
                 list.appendChild(div);
             });
         } catch (err) {
-            console.error(err);
-            list.innerHTML = `<div class="text-red-500 text-center py-8">Could not load notifications.</div>`;
+            console.error("❌ Failed to load notifications:", err);
+            errorDisplay.innerHTML = `Could not load notifications.<br><small>Error: ${err.message}</small>`;
+            errorDisplay.classList.remove('hidden');
+            list.innerHTML = '';
         }
     }
 
@@ -102,13 +109,7 @@
         }
     }
 
-    // Auto-load when page opens and poll every 5 seconds for new notifications
-    window.onload = () => {
-        loadNotifications();
-        // Poll every 5 seconds so new notifications appear automatically
-        // without needing to click Refresh
-        setInterval(loadNotifications, 5000);
-    };
+    window.onload = loadNotifications;
 </script>
 </body>
 </html>

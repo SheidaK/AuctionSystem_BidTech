@@ -25,10 +25,9 @@ public class NotificationListener {
         } else if ("AuctionEnded".equals(type)) {
             message = "Auction " + event.get("auctionId") + " ended. Winner: User #" + event.get("winnerId");
         } else if ("PaymentCompleted".equals(type)) {
-            message = "Payment completed for auction " + event.get("auctionId") + ". TX: " + event.get("transactionId");
+            message = "Payment completed for auction " + event.get("auctionId");
         } else if ("BidRejected".equals(type)) {
-            message = "Bid rejected on auction " + event.get("auctionId")
-                    + " – must be higher than current highest bid ($" + event.get("highestBid") + ")";
+            message = "Bid rejected on auction " + event.get("auctionId") + " – must be higher than current highest bid ($" + event.get("highestBid") + ")";
         } else {
             message = "Notification: " + event.toString();
         }

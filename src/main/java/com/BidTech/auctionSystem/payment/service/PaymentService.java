@@ -65,7 +65,6 @@ public class PaymentService {
      * @return list of all {@link Payment} entities
      */
     public java.util.List<Payment> getAllPayments() {
-        // JpaRepository.findAll() is inherited — returns every row in the payments table
         return paymentRepository.findAll();
     }
 
@@ -83,50 +82,41 @@ public class PaymentService {
      * @param amount    the payment amount in dollars
      * @return the unique transaction ID string on success, or an error message string on failure
      */
-    public String processPayment(Long auctionId, Long userId, double amount) {
+    public String processPayment(Long auctionId, Long userId, double amount, String itemName) {
+        Auction auction = auctionRepository.findById(auctionId)
+                .orElseThrow(() -> new RuntimeException("Auction not found"));
+
+        if (!auction.getHighestBidderId().equals(userId)) {
+            return "Please log in as the winner to pay.";
+        }
+
         if (amount <= 0) {
-            return "Negative payment is not accepted.";
+            return "Negative payment amount is not allowed.";
         }
-
-        if (!isWinner(userId, auctionId)) {
-            return "Please make sure you are the winner.";
-        }
-
-        // Prevent duplicate payments — check if this auction has already been paid for.
-        // A winning auction should only be paid once. Without this check, clicking
-        // "Pay Now" multiple times would create multiple payment records.
-        if (paymentRepository.findByAuctionId(auctionId).isPresent()) {
-            return "This auction has already been paid for.";
-        }
-
-        // Generate a unique transaction ID from the current timestamp
-        String transactionId = String.valueOf(System.currentTimeMillis());
 
         Payment payment = new Payment();
         payment.setAuctionId(auctionId);
         payment.setUserId(userId);
         payment.setAmount(amount);
-        payment.setStatus("SUCCESS");
-        payment.setTransactionId(transactionId);
-        payment.setReceiptUrl("/confirmation/" + transactionId);
+        payment.setTransactionId(String.valueOf(System.currentTimeMillis()));
+        payment.setStatus("COMPLETED");
 
         paymentRepository.save(payment);
 
-        // Publish event
+        String notificationMsg = "Winner has paid for item " + auctionId + " (" + itemName + ")";
+        notificationListener.addNotification(notificationMsg);
+
         Map<String, Object> event = new HashMap<>();
         event.put("type", "PaymentCompleted");
         event.put("auctionId", auctionId);
         event.put("userId", userId);
-        event.put("transactionId", transactionId);
+        event.put("transactionId", payment.getTransactionId());
         event.put("amount", amount);
+        event.put("itemName", itemName);
 
-        rabbitTemplate.convertAndSend(
-                "auction.events",
-                "payment.completed",
-                event
-        );
+        rabbitTemplate.convertAndSend("auction.events", "payment.completed", event);
 
-        return transactionId;
+        return payment.getTransactionId();
     }
 
     /**
@@ -151,7 +141,9 @@ public class PaymentService {
      * @return the payment status string (e.g., "SUCCESS"), or "NOT_FOUND" if no match
      */
     public String getPaymentStatus(String transactionId) {
-        return paymentRepository.findByTransactionId(transactionId)
+        return paymentRepository.findAll().stream()
+                .filter(p -> p.getTransactionId().equals(transactionId))
+                .findFirst()
                 .map(Payment::getStatus)
                 .orElse("NOT_FOUND");
     }
@@ -173,7 +165,6 @@ public class PaymentService {
 
         User user = userRepository.findById(payment.getUserId()).orElse(null);
 
-        // Assemble shipping address from user profile fields
         String shippingAddress = "Address not found";
         if (user != null) {
             shippingAddress = user.getStreetNumber() + " " + user.getStreetName()
@@ -181,41 +172,13 @@ public class PaymentService {
         }
 
         return new Receipt(
-            payment.getId(),
-            payment.getUserId(),
-            shippingAddress,
-            "5-7 business days",
-            payment.getAmount(),
-            payment.getTransactionId(),
-            payment.getStatus()
+                payment.getId(),
+                payment.getUserId(),
+                shippingAddress,
+                "5-7 business days",
+                payment.getAmount(),
+                payment.getTransactionId(),
+                payment.getStatus()
         );
     }
-
-    /*
-    @RabbitListener(queues = RabbitMQConfig.AUCTION_EVENTS_EXCHANGE)
-    public void handleAuctionEnded(Map<String, Object> event) {
-
-        if (!"AuctionEnded".equals(event.get("type"))) return;
-
-        Long auctionId = ((Number) event.get("auctionId")).longValue();
-        Object winnerObj = event.get("winnerId");
-        Double price = ((Number) event.get("finalPrice")).doubleValue();
-
-        System.out.println("\n🔔 AUCTION ENDED NOTIFICATION 🔔");
-
-        if (winnerObj == null) {
-            System.out.println("⚠️ Auction " + auctionId + " ended with NO winner.");
-            return;
-        }
-
-        Long winnerId = ((Number) winnerObj).longValue();
-
-        System.out.println("Auction ID: " + auctionId);
-        System.out.println("Winner User ID: " + winnerId);
-        System.out.println("Final Price: $" + price);
-
-        System.out.println("👉 All users should be redirected to payment page");
-        System.out.println("👉 ONLY User " + winnerId + " can complete payment\n");
-    }
-     */
 }

@@ -22,7 +22,12 @@ public class NotificationController {
      */
     @GetMapping
     public ResponseEntity<List<String>> getNotifications() {
-        return ResponseEntity.ok(notificationListener.getNotifications());
+        try {
+            return ResponseEntity.ok(notificationListener.getNotifications());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(List.of("Error loading notifications: " + e.getMessage()));
+        }
     }
 
     /**

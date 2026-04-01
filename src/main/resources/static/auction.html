@@ -374,7 +374,12 @@
 
         function goToPayment() {
             closeModal();
-            window.location.href = '/pay.html';
+            const auctionId = document.getElementById('endAuctionId').value;
+            if (auctionId) {
+                window.location.href = `/pay.html?auctionId=${auctionId}`;
+            } else {
+                window.location.href = '/pay.html';
+            }
         }
     </script>
 

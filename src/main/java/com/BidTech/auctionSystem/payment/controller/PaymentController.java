@@ -44,20 +44,16 @@ public class PaymentController {
      * @param auctionId the ID of the auction being paid for
      * @param userId    the ID of the user making the payment
      * @param amount    the payment amount in dollars
+     * @param itemName  the name of the auction item
      * @return 200 OK with transaction ID, or 400 Bad Request with error message
      */
     @PostMapping("/process")
     public ResponseEntity<String> processPayment(
             @RequestParam Long auctionId,
             @RequestParam Long userId,
-            @RequestParam double amount) {
-
-        String transactionId = paymentService.processPayment(auctionId, userId, amount);
-
-        if (transactionId == null) {
-            return ResponseEntity.badRequest().body("Payment failed.");
-        }
-
+            @RequestParam double amount,
+            @RequestParam String itemName) {
+        String transactionId = paymentService.processPayment(auctionId, userId, amount, itemName);
         return ResponseEntity.ok(transactionId);
     }
 
@@ -97,11 +93,6 @@ public class PaymentController {
     @GetMapping("/receipt/{paymentId}")
     public ResponseEntity<Receipt> generateReceipt(@PathVariable Long paymentId) {
         Receipt receipt = paymentService.generateReceipt(paymentId);
-
-        if (receipt == null) {
-            return ResponseEntity.notFound().build();
-        }
-
         return ResponseEntity.ok(receipt);
     }
 }
