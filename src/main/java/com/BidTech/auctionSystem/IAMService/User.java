@@ -39,14 +39,14 @@ public class User {
     public User() {}
 
     /**
-     * Creates a fully populated user.
+     * Creates a  user.
      *
      * @param first_name   the user's first name
      * @param last_name    the user's last name
      * @param userName     the unique login username
      * @param email        the user's email address
-     * @param password     the user's password (plain text)
-     * @param role         the user's role ("BUYER" or "SELLER")
+     * @param password     the user's password 
+     * @param role         the user's role ("ADMIN" or "USER")
      * @param streetNumber the street number of the shipping address
      * @param streetName   the street name of the shipping address
      * @param city         the city of the shipping address
@@ -70,7 +70,7 @@ public class User {
         this.country = country;
     }
 
-    // ── Getters ───────────────────────────────────────────────────────────────
+    //  Getters 
 
     public Long getId()           { return id; }
     public String getFirstName()  { return first_name; }
@@ -85,7 +85,7 @@ public class User {
     public String getPostalCode() { return postalCode; }
     public String getCountry()    { return country; }
 
-    // ── Setters ───────────────────────────────────────────────────────────────
+    // Setters 
 
     public void setId(Long id)                     { this.id = id; }
     public void setFirstName(String first_name)    { this.first_name = first_name; }
@@ -102,12 +102,7 @@ public class User {
 
     // ── Business methods ──────────────────────────────────────────────────────
 
-    /**
-     * Checks whether the provided password matches this user's stored password.
-     *
-     * @param enteredPassword the password to check
-     * @return {@code true} if the passwords match; {@code false} otherwise
-     */
+   
     public boolean checkPassword(String enteredPassword) {
         return password != null && password.equals(enteredPassword);
     }
