@@ -109,7 +109,12 @@
         }
     }
 
-    window.onload = loadNotifications;
+    window.onload = () => {
+        loadNotifications();
+
+        // auto refresh every 3 sec
+        setInterval(loadNotifications, 3000);
+    };
 </script>
 </body>
 </html>

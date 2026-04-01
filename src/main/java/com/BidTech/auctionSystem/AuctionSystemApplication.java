@@ -3,6 +3,7 @@ package com.BidTech.auctionSystem;
 import org.springframework.amqp.rabbit.annotation.EnableRabbit;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * AuctionSystemApplication — the entry point for the BidTech Auction System.
@@ -28,6 +29,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  */
 @SpringBootApplication
 @EnableRabbit
+@EnableScheduling
 
 public class AuctionSystemApplication {
 

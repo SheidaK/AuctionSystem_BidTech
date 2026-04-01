@@ -234,16 +234,42 @@
     /** Gets remaining time via GET /auction/{id}/remaining. @returns {Promise<void>} */
     async function getRemainingTime() {
         const id = document.getElementById('queryAuctionId').value;
-        if (!id) { showResult('queryResult', 'Please enter an Auction ID.', 'error'); return; }
+        const user = JSON.parse(localStorage.getItem("user"));
+
+        if (!id) {
+            showResult('queryResult', 'Please enter an Auction ID.', 'error');
+            return;
+        }
+
         document.getElementById('historyTable').innerHTML = '';
+
         try {
             const res = await fetch(`/auction/${id}/remaining`);
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
             const secs = parseInt(await res.text());
-            // Convert raw seconds to a human-readable format
-            const label = secs <= 0 ? 'Auction has ended' : `${Math.floor(secs/60)}m ${secs%60}s remaining`;
-            showResult('queryResult', `⏱ ${label}`, secs <= 0 ? 'error' : 'info');
-        } catch (err) { showResult('queryResult', `❌ ${err.message}`, 'error'); }
+
+            function formatTime(secs) {
+                if (secs <= 0) return "Auction has ended";
+
+                const hours = Math.floor(secs / 3600);
+                const minutes = Math.floor((secs % 3600) / 60);
+                const seconds = secs % 60;
+
+                return `${hours}h ${minutes}m ${seconds}s remaining`;
+            }
+
+            if (secs <= 0) {
+                showResult('queryResult', '🏁 Auction has ended', 'info');
+                loadAuctions();
+                return;
+            }
+
+            showResult('queryResult', `⏱ ${formatTime(secs)}`, 'info');
+
+        } catch (err) {
+            showResult('queryResult', `❌ ${err.message}`, 'error');
+        }
     }
 
     /** Gets bid history via GET /auction/{id}/history. @returns {Promise<void>} */
@@ -294,7 +320,7 @@
         if (!confirm(`End auction #${id}? This cannot be undone.`)) return;
 
         try {
-            const res = await fetch(`/auction/${id}/end?userId=${user.id}`, {
+            const res = await fetch(`/auction/${id}/end`, {
                 method: 'POST'
             });
 
@@ -319,7 +345,7 @@
         const user = localStorage.getItem('user');
 
         if (!user) {
-            // Not logged in → redirect
+            // Not logged in, redirect
             window.location.href = '/login.html';
         }
     }
@@ -328,7 +354,7 @@
         // Clear stored session
         localStorage.clear();
 
-        // Optional: inform backend to destroy session
+        // Inform backend to destroy session
         fetch('/logout', {
             method: 'POST',
             credentials: 'include'
@@ -337,8 +363,54 @@
         // Redirect to login page
         window.location.href = '/login.html';
     }
+
+    let lastNotificationCount = 0;
+
+    async function checkNotifications() {
+        try {
+            const res = await fetch('/api/notifications');
+            const notifications = await res.json();
+
+            if (notifications.length > lastNotificationCount) {
+
+                const latest = notifications[0];
+
+                //  Only react to auction ended events
+                const user = JSON.parse(localStorage.getItem("user"));
+
+                if (
+                    latest.includes("Auction") &&
+                    latest.includes("ended") &&
+                    latest.includes(`User #${user.id}`)
+                ) {
+                    // extract auction id from message
+                    const match = latest.match(/Auction\s#?(\d+)/);
+
+                    if (match) {
+                        const auctionId = match[1];
+
+                        console.log("AUTO END DETECTED:", auctionId);
+
+                        showAuctionEndModal(auctionId);
+                    }
+                }
+
+                lastNotificationCount = notifications.length;
+            }
+
+        } catch (err) {
+            console.error("Notification check failed", err);
+        }
+    }
     checkLogin();
     loadAuctions();
+    setInterval(() => {
+        const id = document.getElementById('queryAuctionId').value;
+        if (id) {
+            getRemainingTime();
+        }
+    }, 5000); // every 5 seconds
+    setInterval(checkNotifications, 3000);
 </script>
 
 <!-- chat-widget.js injects the floating chatbot button and panel into every page. -->
@@ -359,24 +431,29 @@
     </div>
 
     <script>
-        function showAuctionEndModal(auctionId) {
-            document.getElementById('modalMessage').innerHTML = `
-                Auction <strong>${auctionId}</strong> has ended.<br>
-                You are the winner!<br><br>
-                Please proceed to payment.
-            `;
-            document.getElementById('auctionEndModal').classList.remove('hidden');
-        }
 
         function closeModal() {
             document.getElementById('auctionEndModal').classList.add('hidden');
         }
 
+        let currentAuctionId = null;
+
+        function showAuctionEndModal(auctionId) {
+            currentAuctionId = auctionId;
+
+            document.getElementById('modalMessage').innerHTML = `
+        Auction <strong>${auctionId}</strong> has ended.<br>
+        You are the winner!<br><br>
+        Please proceed to payment.
+    `;
+            document.getElementById('auctionEndModal').classList.remove('hidden');
+        }
+
         function goToPayment() {
             closeModal();
-            const auctionId = document.getElementById('endAuctionId').value;
-            if (auctionId) {
-                window.location.href = `/pay.html?auctionId=${auctionId}`;
+
+            if (currentAuctionId) {
+                window.location.href = `/pay.html?auctionId=${currentAuctionId}`;
             } else {
                 window.location.href = '/pay.html';
             }

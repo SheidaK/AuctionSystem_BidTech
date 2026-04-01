@@ -11,6 +11,7 @@ import com.BidTech.auctionSystem.RabbitMQConfig;
 import org.springframework.stereotype.Service;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 
 /**
  * AuctionService — core business logic for the Auction domain.
@@ -201,5 +202,22 @@ public class AuctionService {
 
     public List<Auction> getAllAuctions() {
         return auctionRepository.findAll();
+    }
+
+    @Scheduled(fixedRate = 5000) // runs every 5 seconds
+    public void autoEndAuctions() {
+
+        List<Auction> auctions = auctionRepository.findAll();
+
+        for (Auction auction : auctions) {
+
+            if (auction.isActive() &&
+                    auction.getEndTime().isBefore(LocalDateTime.now())) {
+
+                System.out.println("Auto-ending auction " + auction.getId());
+
+                endAuction(auction.getId()); // reuse logic
+            }
+        }
     }
 }

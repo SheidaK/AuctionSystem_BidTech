@@ -21,23 +21,27 @@ public class NotificationListener {
         String message = "";
 
         if ("BidPlaced".equals(type)) {
-            message = "New bid on auction " + event.get("auctionId") + ": $" + event.get("amount");
+            message = "💰 New bid on auction " + event.get("auctionId") + ": $" + event.get("amount");
         } else if ("AuctionEnded".equals(type)) {
-            message = "Auction " + event.get("auctionId") + " ended. Winner: User #" + event.get("winnerId");
+            Object winner = event.get("winnerId");
+            if (winner != null) {
+                message = "🏁 Auction " + event.get("auctionId") + " ended. Winner: User #" + winner;
+            } else {
+                message = "🏁 Auction " + event.get("auctionId") + " ended. No bids placed.";
+            }
         } else if ("PaymentCompleted".equals(type)) {
-            message = "Payment completed for auction " + event.get("auctionId") + ". TX: " + event.get("transactionId");
+            message = "💳 Payment completed for auction " + event.get("auctionId") + ". TX: " + event.get("transactionId");
         } else if ("BidRejected".equals(type)) {
-            message = "Bid rejected on auction " + event.get("auctionId")
+            message = "❌ Bid rejected on auction " + event.get("auctionId")
                     + " – must be higher than current highest bid ($" + event.get("highestBid") + ")";
-        }
-        else if ("AuctionCreated".equals(type)) {
-            message = "New auction created for item " + event.get("itemName") + " with starting price $" + event.get("startingPrice");
-        }
-        else {
-            message = "Notification: " + event.toString();
+        } else if ("AuctionCreated".equals(type)) {
+            message = "📢 New auction created: " + event.get("itemName") + " (Auction #" + event.get("auctionId") + ")";
+        } else {
+            message = "🔔 " + event.toString();
         }
 
-        notifications.add(message);
+        notifications.add(0, message);
+        System.out.println("🔔 " + message);
     }
 
     /**
