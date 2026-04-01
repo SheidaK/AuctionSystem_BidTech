@@ -104,9 +104,9 @@ public class NotificationListener {
             String msg;
 
             if (winner != null) {
-                msg = "🏁 Auction " + auctionId + " ended. Winner: User #" + winner;
+                msg = " Auction " + auctionId + " ended. Winner: User #" + winner;
             } else {
-                msg = "🏁 Auction " + auctionId + " ended. No bids placed.";
+                msg = " Auction " + auctionId + " ended. No bids placed.";
             }
 
             addNotification(msg);
