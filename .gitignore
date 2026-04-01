@@ -40,7 +40,7 @@ build/
 ### Environment Variables ###
 # .env contains credentials (RabbitMQ, Ollama config) — never commit.
 # .env.example is committed as a template for other developers.
-#.env
+.env
 
 ### Eclipse / Spring Tool Suite ###
 .settings/

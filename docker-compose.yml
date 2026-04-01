@@ -137,7 +137,9 @@ services:
     healthcheck:
       # Health check goes through the load balancer itself (port 80) to verify
       # the full routing chain works — not just that Nginx is running.
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider",
+      # Using curl instead of wget — nginx:alpine includes curl but wget may fail
+      # with connection refused on some versions when checking localhost.
+      test: ["CMD", "curl", "-f", "-s", "--max-time", "3",
              "http://localhost/api/catalogue/health"]
       interval: 30s      # Check every 30 seconds
       timeout: 10s       # Allow time for the proxy chain to respond

@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Payment — BidTech</title>
+    <!-- Auth guard — redirect to login if no user session exists in localStorage -->
+    <script>
+        if (!localStorage.getItem('user')) { window.location.href = '/login.html'; }
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = { theme: { extend: { colors: { brand: { DEFAULT: '#667eea', dark: '#5568d3' } } } } }

@@ -312,9 +312,9 @@ function showGreeting() {
 
     let greeting;
     if (isLoggedIn) {
-        greeting = `Hi ${name}! 👋\n\nWelcome back to BidTech. I can help you search our auction catalogue.\n\nTry asking:\n• "Show me all products"\n• "Any laptops?"\n• "What's the highest bid on auction 1?"\n• "Show me electronics"\n• "List active auctions"`;
+        greeting = `Hi ${name}! 👋\n\nWelcome back to BidTech. I can help you search our auction catalogue.\n\nTry asking:\n• "Show me all products"\n• "Any laptops?"\n• "Show me electronics"\n• "What's the highest bid on auction 1?"\n• "How much time is left on auction 2?"\n• "List active auctions"`;
     } else {
-        greeting = `Hello! 👋\n\nWelcome to BidTech. I can answer general questions about how the platform works.\n\nLog in to search live auctions and products.`;
+        greeting = `Hello! 👋\n\nWelcome to BidTech. I can answer questions about how the platform works.\n\nTry asking:\n• "How do I register?"\n• "How does bidding work?"\n• "How long do auctions last?"\n• "What payment methods are accepted?"\n• "What is BidTech?"\n\nLog in to search live auctions and products.`;
     }
 
     appendMessage(greeting, 'assistant');
