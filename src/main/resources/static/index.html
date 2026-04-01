@@ -343,7 +343,7 @@
                 const isoEndDate = new Date(product.endDate).toISOString().slice(0,19);
 
                 const res = await fetch(
-                    `/auction/create?itemId=${productId}&startingPrice=${startingPrice}&endDate=${isoEndDate}`,
+                    `/auction/create?itemId=${productId}&startingPrice=${startingPrice}&endDate=${isoEndDate}&itemName=${encodeURIComponent(productName)}`,
                     { method: "POST" }
                 );
 

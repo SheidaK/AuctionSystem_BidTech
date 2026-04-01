@@ -53,7 +53,7 @@ public class PaymentController {
             @RequestParam Long userId,
             @RequestParam double amount,
             @RequestParam String itemName) {
-        String transactionId = paymentService.processPayment(auctionId, userId, amount, itemName);
+        String transactionId = paymentService.processPayment(auctionId, userId, amount);
         return ResponseEntity.ok(transactionId);
     }
 

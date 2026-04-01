@@ -25,23 +25,19 @@ public class NotificationListener {
         } else if ("AuctionEnded".equals(type)) {
             message = "Auction " + event.get("auctionId") + " ended. Winner: User #" + event.get("winnerId");
         } else if ("PaymentCompleted".equals(type)) {
-            message = "Payment completed for auction " + event.get("auctionId");
+            message = "Payment completed for auction " + event.get("auctionId") + ". TX: " + event.get("transactionId");
         } else if ("BidRejected".equals(type)) {
-            message = "Bid rejected on auction " + event.get("auctionId") + " – must be higher than current highest bid ($" + event.get("highestBid") + ")";
-        } else {
+            message = "Bid rejected on auction " + event.get("auctionId")
+                    + " – must be higher than current highest bid ($" + event.get("highestBid") + ")";
+        }
+        else if ("AuctionCreated".equals(type)) {
+            message = "New auction created for item " + event.get("itemName") + " with starting price $" + event.get("startingPrice");
+        }
+        else {
             message = "Notification: " + event.toString();
         }
 
         notifications.add(message);
-        System.out.println("🔔 " + message);
-    }
-
-    /**
-     * Helper method for direct notifications (used by /test endpoint and for testing).
-     */
-    public void addNotification(String message) {
-        notifications.add(message);
-        System.out.println("🔔 " + message);
     }
 
     /**

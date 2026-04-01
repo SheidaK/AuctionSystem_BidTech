@@ -23,9 +23,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class AuctionService {
 
     @Autowired
-    private NotificationListener notificationListener;
-
-    @Autowired
     private RabbitTemplate rabbitTemplate;
 
     /** Repository for persisting and retrieving {@link Auction} entities. */
@@ -54,15 +51,21 @@ public class AuctionService {
      * @param startingPrice the opening bid amount
      * @return the saved {@link Auction} entity with its generated ID
      */
-    public Auction createAuction(Long itemId, double startingPrice, LocalDateTime endDate) {
-        if (auctionRepository.existsByItemIdAndActiveTrue(itemId)) {
-            throw new RuntimeException("Auction already exists for this item");
-        }
-
+    public Auction createAuction(Long itemId, double startingPrice, LocalDateTime endDateTime, String itemName) {
         Auction auction = new Auction(itemId, startingPrice);
-        auction.setEndTime(endDate);
+        auction.setEndTime(endDateTime);
+        Auction savedAuction = auctionRepository.save(auction);
 
-        return auctionRepository.save(auction);
+        Map<String, Object> event = new HashMap<>();
+        event.put("type", "AuctionCreated");
+        event.put("itemId", itemId);
+        event.put("itemName", itemName); // Added to map
+        event.put("startingPrice", startingPrice);
+        event.put("endTime", endDateTime.toString());
+
+        rabbitTemplate.convertAndSend("auction.events", "auction.created", event);
+
+        return savedAuction;
     }
 
     /**
@@ -92,7 +95,7 @@ public class AuctionService {
             throw new InvalidBidException("Auction has ended.");
         }
 
-        // LOW BID notification and throw exception
+        // LOW BID notification
         if (amount <= auction.getHighestBid()) {
             Map<String, Object> event = new HashMap<>();
             event.put("type", "BidRejected");
@@ -106,11 +109,10 @@ public class AuctionService {
             throw new InvalidBidException("Your bid must be higher than the currently highest bid.");
         }
 
-        // Persist the bid record
         Bid bid = new Bid(auctionId, userId, amount);
         bidRepository.save(bid);
 
-        // Update the auction's highest bid state so subsequent bids are validated correctly
+        // Update the auction's highest bid
         auction.setHighestBid(amount);
         auction.setHighestBidderId(userId);
         auctionRepository.save(auction);
@@ -169,7 +171,6 @@ public class AuctionService {
                 auction.getEndTime()
         ).getSeconds();
 
-        // Clamp to 0 — don't return negative values if the clock has passed endTime
         return Math.max(seconds, 0);
     }
 
@@ -186,11 +187,6 @@ public class AuctionService {
                 .orElseThrow(() -> new AuctionNotFoundException(auctionId));
 
         auction.endAuction();
-
-        String message = String.format("Auction #%d has ended. Winner: User #%d with final bid of $%.2f",
-                auctionId, auction.getHighestBidderId(), auction.getHighestBid());
-
-        notificationListener.addNotification(message);
 
         Map<String, Object> event = new HashMap<>();
         event.put("type", "AuctionEnded");

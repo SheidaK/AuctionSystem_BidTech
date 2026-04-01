@@ -1,6 +1,7 @@
 package com.BidTech.auctionSystem.AuctionService;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -50,16 +51,16 @@ public class AuctionController {
      * @return the created {@link Auction} entity as JSON
      */
     @PostMapping("/create")
-    public Auction createAuction(
-            @RequestParam Long itemId,
-            @RequestParam double startingPrice,
-            @RequestParam String endDate
-    ) {
-        return auctionService.createAuction(
-                itemId,
-                startingPrice,
-                LocalDateTime.parse(endDate)
-        );
+    public Auction createAuction(@RequestParam Long itemId,
+                                 @RequestParam double startingPrice,
+                                 @RequestParam String endDate,
+                                 @RequestParam String itemName) { // Added itemName
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
+        LocalDateTime endDateTime = LocalDateTime.parse(endDate, formatter);
+
+        // Pass itemName to the service
+        return auctionService.createAuction(itemId, startingPrice, endDateTime, itemName);
     }
 
     /**

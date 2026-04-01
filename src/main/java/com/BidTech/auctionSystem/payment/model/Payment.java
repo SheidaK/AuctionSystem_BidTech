@@ -65,6 +65,22 @@ public class Payment {
     /** Default no-argument constructor required by JPA. */
     public Payment() {}
 
+    /**
+     * Main constructor to create a new payment record.
+     * @param auctionId     The ID of the auction being paid for
+     * @param userId        The ID of the winner making the payment
+     * @param amount        The winning bid amount
+     * @param transactionId The unique ID generated for this transaction
+     * @param status        The status of the payment
+     */
+    public Payment(Long auctionId, Long userId, double amount, String transactionId, String status) {
+        this.auctionId = auctionId;
+        this.userId = userId;
+        this.amount = amount;
+        this.transactionId = transactionId;
+        this.status = status;
+    }
+
     /** @return the payment's database ID */
     public Long getId() { return id; }
 

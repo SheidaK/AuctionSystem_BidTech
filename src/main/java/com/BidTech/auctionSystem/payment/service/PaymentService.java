@@ -2,6 +2,7 @@ package com.BidTech.auctionSystem.payment.service;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -82,41 +83,43 @@ public class PaymentService {
      * @param amount    the payment amount in dollars
      * @return the unique transaction ID string on success, or an error message string on failure
      */
-    public String processPayment(Long auctionId, Long userId, double amount, String itemName) {
-        Auction auction = auctionRepository.findById(auctionId)
-                .orElseThrow(() -> new RuntimeException("Auction not found"));
+    public String processPayment(Long auctionId, Long userId, Double amount) {
+        Auction auction = auctionRepository.findById(auctionId).orElse(null);
 
-        if (!auction.getHighestBidderId().equals(userId)) {
-            return "Please log in as the winner to pay.";
+        if (auction == null) {
+            return "Error: Auction not found.";
         }
 
-        if (amount <= 0) {
-            return "Negative payment amount is not allowed.";
+        if (auction.isActive()) {
+            return "Error: Auction is still active.";
         }
 
-        Payment payment = new Payment();
-        payment.setAuctionId(auctionId);
-        payment.setUserId(userId);
-        payment.setAmount(amount);
-        payment.setTransactionId(String.valueOf(System.currentTimeMillis()));
-        payment.setStatus("COMPLETED");
+        if (!userId.equals(auction.getHighestBidderId())) {
+            return "Error: Only the winner can pay.";
+        }
 
+        if (amount < auction.getHighestBid()) {
+            return "Error: Payment amount is less than the winning bid.";
+        }
+
+        boolean alreadyPaid = paymentRepository.findAll().stream()
+                .anyMatch(p -> p.getAuctionId().equals(auctionId) && "COMPLETED".equals(p.getStatus()));
+
+        if (alreadyPaid) {
+            return "Error: Payment already processed for this auction.";
+        }
+
+        String transactionId = UUID.randomUUID().toString();
+        Payment payment = new Payment(auctionId, userId, amount, transactionId, "COMPLETED");
         paymentRepository.save(payment);
-
-        String notificationMsg = "Winner has paid for item " + auctionId + " (" + itemName + ")";
-        notificationListener.addNotification(notificationMsg);
 
         Map<String, Object> event = new HashMap<>();
         event.put("type", "PaymentCompleted");
         event.put("auctionId", auctionId);
-        event.put("userId", userId);
-        event.put("transactionId", payment.getTransactionId());
-        event.put("amount", amount);
-        event.put("itemName", itemName);
-
+        event.put("transactionId", transactionId);
         rabbitTemplate.convertAndSend("auction.events", "payment.completed", event);
 
-        return payment.getTransactionId();
+        return transactionId;
     }
 
     /**
