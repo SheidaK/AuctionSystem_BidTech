@@ -95,6 +95,7 @@
                             <h3 class="font-semibold text-brand mb-1">You won this auction!</h3>
                             <p class="text-2xl font-medium text-gray-800">${product.name}</p>
                             <p class="text-sm text-gray-500">Auction #${auction.id}</p>
+                            <p class="text-sm text-gray-500 mt-1">Shipping to: ${user.streetNumber} ${user.streetName}, ${user.city}, ${user.postalCode}</p>
                             <p class="text-xl font-semibold text-brand mt-2" id="total-${auction.id}" data-current-amount="${auction.highestBid}">Total: $${auction.highestBid.toFixed(2)}</p>
                         </div>
                         <div class="flex gap-3">

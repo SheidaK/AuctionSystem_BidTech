@@ -49,6 +49,10 @@
             <span class="text-sm font-semibold text-gray-600">Shipping Cost (Regular + Expedited)</span>
             <span class="font-bold text-brand text-lg" id="shippingCost">—</span>
         </div>
+        <div class="flex justify-between items-center px-8 py-4">
+            <span class="text-sm font-semibold text-gray-600">Estimated Shipping Time</span>
+            <span class="font-bold text-brand text-lg" id="shippingTime">—</span>
+        </div>
         <div class="flex justify-between items-center px-8 py-4 border-t-2 border-gray-300">
             <span class="text-sm font-semibold text-gray-600">Total Paid</span>
             <span class="font-bold text-brand text-2xl" id="totalPaid">—</span>
@@ -65,13 +69,11 @@
     const urlParams = new URLSearchParams(window.location.search);
     let paymentId = urlParams.get('paymentId');
 
-    // If no paymentId in URL (common case after payment), load the latest payment
     if (!paymentId) {
         fetch('/api/payments')
             .then(res => res.json())
             .then(payments => {
                 if (payments.length > 0) {
-                    // Sort by ID descending and take the latest one
                     const latestPayment = payments.sort((a, b) => b.id - a.id)[0];
                     paymentId = latestPayment.id;
                     fetchReceipt(paymentId);
@@ -94,6 +96,7 @@
                 const totalPaid = receipt.totalAmount ?? receipt.amount ?? 0;
                 let itemPrice = totalPaid;
                 let totalShipping = 0;
+                let shippingTime = "5-7 business days";
 
                 try {
                     const paymentsRes = await fetch('/api/payments');
@@ -115,10 +118,14 @@
                                 regularShipping = product.shippingCost || 0;
                             }
 
-                            const expeditedShipping = totalPaid > winningBid ? (totalPaid - winningBid) : 0;
+                            const expeditedShipping = totalPaid > winningBid ? 50 : 0;
 
                             itemPrice = winningBid - regularShipping;
                             totalShipping = regularShipping + expeditedShipping;
+
+                            if (expeditedShipping > 0) {
+                                shippingTime = "1-2 business days";
+                            }
                         }
                     }
                 } catch (err) {}
@@ -126,6 +133,7 @@
                 document.getElementById('txId').textContent = receipt.transactionId || '—';
                 document.getElementById('itemPrice').textContent = `$${itemPrice.toFixed(2)}`;
                 document.getElementById('shippingCost').textContent = `$${totalShipping.toFixed(2)}`;
+                document.getElementById('shippingTime').textContent = shippingTime;
                 document.getElementById('totalPaid').textContent = `$${totalPaid.toFixed(2)}`;
             })
             .catch(err => {
