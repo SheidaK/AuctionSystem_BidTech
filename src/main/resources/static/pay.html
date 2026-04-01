@@ -89,7 +89,7 @@
                             <p class="text-2xl font-medium text-gray-800">${product.name}</p>
                             <p class="text-sm text-gray-500">Auction #${auction.id} • Final bid: $${auction.highestBid.toFixed(2)}</p>
                         </div>
-                        <button onclick="processPayment(${auction.id}, ${auction.highestBid}, '${product.name.replace(/'/g, "\\'")}')"
+                        <button onclick="openPaymentModal(${auction.id}, ${auction.highestBid}, '${product.name.replace(/'/g, "\\'")}')"
                                 class="bg-brand hover:bg-brand-dark text-white font-medium px-8 py-4 rounded-2xl text-lg transition">
                             Pay Now
                         </button>
@@ -134,8 +134,60 @@
     }
 
     window.onload = loadPaymentList;
+
+    let selectedAuctionId = null;
+    let selectedAmount = null;
+    let selectedItemName = null;
+
+    function openPaymentModal(id, amount, name) {
+        selectedAuctionId = id;
+        selectedAmount = amount;
+        selectedItemName = name;
+
+        document.getElementById('paymentModal').classList.remove('hidden');
+    }
+
+    function closePaymentModal() {
+        document.getElementById('paymentModal').classList.add('hidden');
+    }
+
+    function confirmPayment() {
+        const card = document.getElementById('cardNumber').value;
+        const expiry = document.getElementById('expiry').value;
+        const cvv = document.getElementById('cvv').value;
+
+        if (!card || !expiry || !cvv) {
+            alert("Please fill all fields");
+            return;
+        }
+
+        if (card.length !== 16) {
+            alert("Invalid card number");
+            return;
+        }
+
+        closePaymentModal();
+
+        processPayment(selectedAuctionId, selectedAmount, selectedItemName);
+    }
 </script>
 
 <script src="chat-widget.js"></script>
+
+<div id="paymentModal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50">
+    <div class="bg-white rounded-2xl p-6 w-96 shadow-xl">
+        <h3 class="text-xl font-semibold mb-4">💳 Enter Card Details</h3>
+
+        <input id="cardNumber" class="w-full border p-2 mb-3 rounded" placeholder="Card Number" maxlength="16">
+        <input id="expiry" class="w-full border p-2 mb-3 rounded" placeholder="MM/YY">
+        <input id="cvv" class="w-full border p-2 mb-4 rounded" placeholder="CVV" maxlength="3">
+
+        <div class="flex justify-between">
+            <button onclick="closePaymentModal()" class="px-4 py-2 bg-gray-200 rounded">Cancel</button>
+            <button onclick="confirmPayment()" class="px-4 py-2 bg-green-600 text-white rounded">Confirm</button>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>
