@@ -22,6 +22,7 @@
         <a href="/auction.html" class="text-white/85 px-4 py-4 text-sm font-medium rounded hover:bg-white/15 transition">🔨 Auction</a>
         <a href="/users.html" class="text-white/85 px-4 py-4 text-sm font-medium rounded hover:bg-white/15 transition">👤 Users</a>
         <a href="/pay.html" class="text-white bg-white/20 px-4 py-4 text-sm font-medium rounded hover:bg-white/30 transition">💳 Payment</a>
+        <a href="/receipt.html" class="text-white/85 px-4 py-4 text-sm font-medium rounded hover:bg-white/15 transition">🧾 Receipt</a>
         <a href="/notifications.html" class="text-white/85 px-4 py-4 text-sm font-medium rounded hover:bg-white/15 transition">🔔 Notifications</a>
         <button onclick="logout()" class="text-white px-4 py-2 hover:bg-white/20 rounded">🚪 Logout</button>
     </div>
@@ -73,13 +74,15 @@
 
                 const card = document.createElement('div');
                 card.className = 'bg-white border border-gray-200 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-center gap-6';
+                card.dataset.auctionId = auction.id;
+                card.dataset.baseAmount = auction.highestBid;
 
                 if (hasPaid) {
                     card.innerHTML = `
                         <div class="flex-1">
                             <h3 class="font-semibold text-green-800 mb-1">Item has been purchased</h3>
                             <p class="text-2xl font-medium text-gray-800">${product.name}</p>
-                            <p class="text-sm text-gray-500">Auction #${auction.id} • $${auction.highestBid.toFixed(2)}</p>
+                            <p class="text-sm text-gray-500">Auction #${auction.id} • Final paid: $${auction.highestBid.toFixed(2)}</p>
                         </div>
                     `;
                 } else {
@@ -87,12 +90,19 @@
                         <div class="flex-1">
                             <h3 class="font-semibold text-brand mb-1">You won this auction!</h3>
                             <p class="text-2xl font-medium text-gray-800">${product.name}</p>
-                            <p class="text-sm text-gray-500">Auction #${auction.id} • Final bid: $${auction.highestBid.toFixed(2)}</p>
+                            <p class="text-sm text-gray-500">Auction #${auction.id}</p>
+                            <p class="text-xl font-semibold text-brand mt-2" id="total-${auction.id}">Total: $${auction.highestBid.toFixed(2)}</p>
                         </div>
-                        <button onclick="processPayment(${auction.id}, ${auction.highestBid}, '${product.name.replace(/'/g, "\\'")}')"
-                                class="bg-brand hover:bg-brand-dark text-white font-medium px-8 py-4 rounded-2xl text-lg transition">
-                            Pay Now
-                        </button>
+                        <div class="flex gap-3">
+                            <button onclick="processPayment(${auction.id}, ${auction.highestBid}, '${product.name.replace(/'/g, "\\'")}')"
+                                    class="bg-brand hover:bg-brand-dark text-white font-medium px-8 py-4 rounded-2xl text-lg transition">
+                                Pay Now
+                            </button>
+                            <button onclick="selectExpedited(this, ${auction.id})"
+                                    class="bg-purple-600 hover:bg-purple-700 text-white font-medium px-8 py-4 rounded-2xl text-lg transition">
+                                Expedited (+$50)
+                            </button>
+                        </div>
                     `;
                 }
                 container.appendChild(card);
@@ -100,6 +110,18 @@
         } catch (e) {
             container.innerHTML = `<div class="bg-red-50 text-red-800 p-6 rounded-2xl text-center font-medium">Error loading payments.</div>`;
         }
+    }
+
+    function selectExpedited(btn, auctionId) {
+        btn.disabled = true;
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
+        btn.textContent = 'Expedited Selected';
+
+        const totalEl = document.getElementById(`total-${auctionId}`);
+        const base = parseFloat(totalEl.dataset.baseAmount || totalEl.textContent.match(/\d+\.\d+/)[0]);
+        const newTotal = base + 50;
+        totalEl.textContent = `Total: $${newTotal.toFixed(2)}`;
+        totalEl.dataset.currentAmount = newTotal;
     }
 
     async function processPayment(auctionId, amount, itemName) {
@@ -118,7 +140,7 @@
                 loadPaymentList();
 
                 setTimeout(() => {
-                    window.location.href = '/index.html';
+                    window.location.href = '/receipt.html';
                 }, 1200);
             } else {
                 alert(result);

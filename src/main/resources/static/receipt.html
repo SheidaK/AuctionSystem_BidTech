@@ -4,12 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Receipt — BidTech</title>
-    <!-- Tailwind CSS CDN — same version used across all BidTech pages -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        tailwind.config = {
-            theme: { extend: { colors: { brand: { DEFAULT: '#667eea', dark: '#5568d3' } } } }
-        }
+        tailwind.config = { theme: { extend: { colors: { brand: { DEFAULT: '#667eea', dark: '#5568d3' } } } } }
     </script>
     <style>
         .bg-brand-gradient { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
@@ -18,105 +15,81 @@
 </head>
 <body class="bg-brand-gradient min-h-screen font-sans">
 
-    <!-- ── Shared Navigation Bar ─────────────────────────────────────────────
-         Receipt is a destination page (arrived via redirect after payment).
-         No link is highlighted as active — the user came from the Payment page.
-         All four nav links are available so the user can navigate away. -->
-    <nav class="bg-nav-gradient shadow-lg">
-        <div class="max-w-4xl mx-auto px-6 flex items-center gap-1">
-            <span class="text-white font-bold text-lg py-4 pr-5 mr-3 border-r border-white/20">🏛️ BidTech</span>
-            <a href="/index.html"   class="text-white/85 px-4 py-4 text-sm font-medium rounded hover:bg-white/15 transition">📦 Catalogue</a>
-            <a href="/auction.html" class="text-white/85 px-4 py-4 text-sm font-medium rounded hover:bg-white/15 transition">🔨 Auction</a>
-            <a href="/users.html"   class="text-white/85 px-4 py-4 text-sm font-medium rounded hover:bg-white/15 transition">👤 Users</a>
-            <!-- Payment is highlighted as the closest parent page for this receipt -->
-            <a href="/pay.html"     class="text-white bg-white/20 px-4 py-4 text-sm font-medium rounded hover:bg-white/30 transition">💳 Payment</a>
-            <button onclick="logout()" class="text-white px-4 py-2 hover:bg-white/20 rounded ml-auto">🚪 Logout</button>
+<nav class="bg-nav-gradient shadow-lg">
+    <div class="max-w-6xl mx-auto px-6 flex items-center gap-1">
+        <span class="text-white font-bold text-lg py-4 pr-5 mr-3 border-r border-white/20">🏛️ BidTech</span>
+        <a href="/index.html" class="text-white/85 px-4 py-4 text-sm font-medium rounded hover:bg-white/15 transition">📦 Catalogue</a>
+        <a href="/auction.html" class="text-white/85 px-4 py-4 text-sm font-medium rounded hover:bg-white/15 transition">🔨 Auction</a>
+        <a href="/users.html" class="text-white/85 px-4 py-4 text-sm font-medium rounded hover:bg-white/15 transition">👤 Users</a>
+        <a href="/pay.html" class="text-white/85 px-4 py-4 text-sm font-medium rounded hover:bg-white/15 transition">💳 Payment</a>
+        <a href="/receipt.html" class="text-white bg-white/20 px-4 py-4 text-sm font-medium rounded hover:bg-white/15 transition">🧾 Receipt</a>
+        <a href="/notifications.html" class="text-white/85 px-4 py-4 text-sm font-medium rounded hover:bg-white/15 transition">🔔 Notifications</a>
+        <button onclick="logout()" class="text-white px-4 py-2 hover:bg-white/20 rounded">🚪 Logout</button>
+    </div>
+</nav>
+
+<div class="max-w-2xl mx-auto my-10 bg-white rounded-2xl shadow-2xl overflow-hidden">
+
+    <div class="bg-brand-gradient text-white px-8 py-8 text-center">
+        <div class="text-5xl mb-3">🧾</div>
+        <h1 class="text-3xl font-bold mb-1">Payment Receipt</h1>
+        <p class="text-white/90">Thank you for your purchase!</p>
+    </div>
+
+    <div class="divide-y divide-gray-100">
+        <div class="flex justify-between items-center px-8 py-4">
+            <span class="text-sm font-semibold text-gray-600">Transaction ID</span>
+            <span class="font-bold text-brand text-sm" id="txId">—</span>
         </div>
-    </nav>
-
-    <!-- ── Receipt card ── -->
-    <div class="max-w-2xl mx-auto my-10 bg-white rounded-2xl shadow-2xl overflow-hidden">
-
-        <!-- Header -->
-        <div class="bg-brand-gradient text-white px-8 py-8 text-center">
-            <div class="text-5xl mb-3">🧾</div>
-            <h1 class="text-3xl font-bold mb-1">Payment Receipt</h1>
-            <p class="text-white/90">Thank you for your purchase!</p>
+        <div class="flex justify-between items-center px-8 py-4">
+            <span class="text-sm font-semibold text-gray-600">Item Price</span>
+            <span class="font-bold text-brand text-lg" id="itemPrice">—</span>
         </div>
-
-        <!-- Receipt rows — populated by the API call below -->
-        <div class="divide-y divide-gray-100">
-            <div class="flex justify-between items-center px-8 py-4">
-                <span class="text-sm font-semibold text-gray-600">Transaction ID</span>
-                <span class="font-bold text-brand text-sm" id="txId">Loading...</span>
-            </div>
-            <div class="flex justify-between items-center px-8 py-4">
-                <span class="text-sm font-semibold text-gray-600">Total Paid</span>
-                <span class="font-bold text-brand text-lg" id="amount">—</span>
-            </div>
-            <div class="flex justify-between items-center px-8 py-4">
-                <span class="text-sm font-semibold text-gray-600">Shipping Address</span>
-                <span class="text-gray-500 text-sm text-right max-w-xs" id="shippingAddress">—</span>
-            </div>
-            <div class="flex justify-between items-center px-8 py-4">
-                <span class="text-sm font-semibold text-gray-600">Estimated Delivery</span>
-                <span class="text-gray-500 text-sm" id="delivery">—</span>
-            </div>
-            <div class="flex justify-between items-center px-8 py-4">
-                <span class="text-sm font-semibold text-gray-600">Status</span>
-                <span class="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800" id="status">—</span>
-            </div>
+        <div class="flex justify-between items-center px-8 py-4">
+            <span class="text-sm font-semibold text-gray-600">Shipping Cost</span>
+            <span class="font-bold text-brand text-lg" id="shippingCost">—</span>
         </div>
-
-        <!-- Footer actions -->
-        <div class="px-8 py-6 bg-gray-50 flex gap-3 justify-end">
-            <a href="/pay.html"
-                class="px-5 py-2.5 bg-brand text-white text-sm font-semibold rounded-lg hover:bg-brand-dark transition shadow-sm">
-                ← Back to Payment
-            </a>
-            <a href="/index.html"
-                class="px-5 py-2.5 bg-gray-200 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-300 transition">
-                Browse Catalogue
-            </a>
+        <div class="flex justify-between items-center px-8 py-4 border-t-2 border-gray-300">
+            <span class="text-sm font-semibold text-gray-600">Total Paid</span>
+            <span class="font-bold text-brand text-2xl" id="totalPaid">—</span>
         </div>
     </div>
 
-    <script>
-        // Read the paymentId from the URL query string.
-        // Example: /receipt.html?paymentId=3
-        // Falls back to 1 if no paymentId is provided (for direct navigation).
-        const urlParams = new URLSearchParams(window.location.search);
-        const paymentId = urlParams.get('paymentId') || 1;
+    <div class="px-8 py-6 bg-gray-50 flex gap-3 justify-end">
+        <a href="/pay.html" class="px-5 py-2.5 bg-brand text-white text-sm font-semibold rounded-lg hover:bg-brand-dark transition shadow-sm">← Back to Payment</a>
+        <a href="/index.html" class="px-5 py-2.5 bg-gray-200 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-300 transition">Browse Catalogue</a>
+    </div>
+</div>
 
-        // Fetch the receipt from the Payment Service via the load balancer.
-        // Relative URL ensures this works in Docker (port 8080 is not exposed to host).
-        fetch(`/api/payments/receipt/${paymentId}`)
-            .then(res => {
-                if (!res.ok) throw new Error('Receipt not found');
-                return res.json();
-            })
-            .then(receipt => {
-                // Populate each field from the API response
-                document.getElementById('txId').textContent          = receipt.transactionId || '—';
-                // Handle both 'totalAmount' and 'amount' field names from the backend
-                const amt = receipt.totalAmount ?? receipt.amount;
-                document.getElementById('amount').textContent        = amt != null ? `$${Number(amt).toFixed(2)}` : '—';
-                document.getElementById('shippingAddress').textContent = receipt.shippingAddress || '—';
-                document.getElementById('delivery').textContent      = receipt.estimatedDelivery || receipt.deliveryTime || '5-7 business days';
-                document.getElementById('status').textContent        = receipt.status || '—';
-            })
-            .catch(err => {
-                document.getElementById('txId').textContent = 'Error loading receipt — ' + err.message;
-            });
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentId = urlParams.get('paymentId') || 1;
 
-        // Logout — clears session and redirects to login page
-        function logout() {
-            localStorage.clear();
-            window.location.href = '/login.html';
-        }
-    </script>
+    fetch(`/api/payments/receipt/${paymentId}`)
+        .then(res => {
+            if (!res.ok) throw new Error('Receipt not found');
+            return res.json();
+        })
+        .then(receipt => {
+            const amt = receipt.totalAmount ?? receipt.amount;
+            const base = amt > 0 ? amt - 50 : amt;
+            const shipping = amt > base ? 50 : 0;
 
-    <!-- chat-widget.js injects the floating chatbot button and panel. -->
-    <script src="chat-widget.js"></script>
+            document.getElementById('txId').textContent = receipt.transactionId || '—';
+            document.getElementById('itemPrice').textContent = `$${base.toFixed(2)}`;
+            document.getElementById('shippingCost').textContent = shipping === 50 ? '$50' : 'Free';
+            document.getElementById('totalPaid').textContent = `$${amt.toFixed(2)}`;
+        })
+        .catch(err => {
+            document.getElementById('txId').textContent = 'Error loading receipt';
+        });
+
+    function logout() {
+        localStorage.clear();
+        window.location.href = '/login.html';
+    }
+</script>
+
+<script src="chat-widget.js"></script>
 </body>
 </html>
