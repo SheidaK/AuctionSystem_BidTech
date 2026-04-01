@@ -15,10 +15,10 @@
 </p>
 
 ---
-To run AuctionSystem_BidTech:
+To run :
 run docker,
-in the terminal add  "docker run -d -p 5672:5672 -p 15672:15672 rabbitmq:3-management"
-run as clean spring-boot:run
+in the terminal add  "docker run -d -p 5672:5672 -p 15672:15672 rabbitmq:3-management", enter guest as username and password in "http://localhost:15672/",
+run both applications as clean spring-boot:run
 ## Architecture
 
 ```
