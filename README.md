@@ -16,8 +16,8 @@
 
 ---
 To run AuctionSystem_BidTech:
-run docker
-in the terminal add "docker run -d -p 5672:5672 -p 15672:15672 rabbitmq:3-management"
+run docker,
+in the terminal add  "docker run -d -p 5672:5672 -p 15672:15672 rabbitmq:3-management"
 run as clean spring-boot:run
 ## Architecture
 
