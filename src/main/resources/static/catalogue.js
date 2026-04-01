@@ -6,22 +6,18 @@ function checkLogin() {
     const user = localStorage.getItem('user');
 
     if (!user) {
-        // Not logged in → redirect
         window.location.href = '/login.html';
     }
 }
 
 function logout() {
-    // Clear stored session
     localStorage.clear();
 
-    // Optional: inform backend to destroy session
     fetch('/logout', {
         method: 'POST',
         credentials: 'include'
     });
 
-    // Redirect to login page
     window.location.href = '/login.html';
 }
 const API_BASE = '/api/catalogue';

@@ -83,7 +83,6 @@ public class UserController {
 	        return Map.of("exists", exists);
 	    }
 
-	    // --- Check if email exists (for frontend validation) ---
 	    @GetMapping("/users/check-email/{email}")
 	    public Map<String, Boolean> checkEmail(@PathVariable String email) {
 	        boolean exists = repository.findByEmail(email).isPresent();
