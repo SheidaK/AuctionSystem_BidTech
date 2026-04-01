@@ -113,7 +113,7 @@ public class AuctionService {
 
             rabbitTemplate.convertAndSend("auction.events", "bid.rejected", event);
 
-            throw new InvalidBidException("Your bid must be higher than the currently highest bid.");
+            throw new InvalidBidException("Your bid must be higher than the minimnum starting price and the current highest bid.");
         }
 
         Bid bid = new Bid(auctionId, userId, amount);
