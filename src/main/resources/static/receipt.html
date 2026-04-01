@@ -46,7 +46,7 @@
             <span class="font-bold text-brand text-lg" id="itemPrice">—</span>
         </div>
         <div class="flex justify-between items-center px-8 py-4">
-            <span class="text-sm font-semibold text-gray-600">Shipping Cost</span>
+            <span class="text-sm font-semibold text-gray-600">Shipping Cost (Regular + Expedited)</span>
             <span class="font-bold text-brand text-lg" id="shippingCost">—</span>
         </div>
         <div class="flex justify-between items-center px-8 py-4 border-t-2 border-gray-300">
@@ -63,26 +63,75 @@
 
 <script>
     const urlParams = new URLSearchParams(window.location.search);
-    const paymentId = urlParams.get('paymentId') || 1;
+    let paymentId = urlParams.get('paymentId');
 
-    fetch(`/api/payments/receipt/${paymentId}`)
-        .then(res => {
-            if (!res.ok) throw new Error('Receipt not found');
-            return res.json();
-        })
-        .then(receipt => {
-            const amt = receipt.totalAmount ?? receipt.amount;
-            const base = amt > 0 ? amt - 50 : amt;
-            const shipping = amt > base ? 50 : 0;
+    // If no paymentId in URL (common case after payment), load the latest payment
+    if (!paymentId) {
+        fetch('/api/payments')
+            .then(res => res.json())
+            .then(payments => {
+                if (payments.length > 0) {
+                    // Sort by ID descending and take the latest one
+                    const latestPayment = payments.sort((a, b) => b.id - a.id)[0];
+                    paymentId = latestPayment.id;
+                    fetchReceipt(paymentId);
+                }
+            })
+            .catch(() => {
+                document.getElementById('txId').textContent = 'Error loading receipt';
+            });
+    } else {
+        fetchReceipt(paymentId);
+    }
 
-            document.getElementById('txId').textContent = receipt.transactionId || '—';
-            document.getElementById('itemPrice').textContent = `$${base.toFixed(2)}`;
-            document.getElementById('shippingCost').textContent = shipping === 50 ? '$50' : 'Free';
-            document.getElementById('totalPaid').textContent = `$${amt.toFixed(2)}`;
-        })
-        .catch(err => {
-            document.getElementById('txId').textContent = 'Error loading receipt';
-        });
+    function fetchReceipt(id) {
+        fetch(`/api/payments/receipt/${id}`)
+            .then(res => {
+                if (!res.ok) throw new Error('Receipt not found');
+                return res.json();
+            })
+            .then(async receipt => {
+                const totalPaid = receipt.totalAmount ?? receipt.amount ?? 0;
+                let itemPrice = totalPaid;
+                let totalShipping = 0;
+
+                try {
+                    const paymentsRes = await fetch('/api/payments');
+                    const payments = await paymentsRes.json();
+                    const payment = payments.find(p => p.id === parseInt(id));
+
+                    if (payment && payment.auctionId) {
+                        const auctionsRes = await fetch('/auction/all');
+                        const auctions = await auctionsRes.json();
+                        const auction = auctions.find(a => a.id === payment.auctionId);
+
+                        if (auction) {
+                            const winningBid = auction.highestBid;
+                            let regularShipping = 0;
+
+                            const productRes = await fetch(`/api/catalogue/products/${auction.itemId}`);
+                            if (productRes.ok) {
+                                const product = await productRes.json();
+                                regularShipping = product.shippingCost || 0;
+                            }
+
+                            const expeditedShipping = totalPaid > winningBid ? (totalPaid - winningBid) : 0;
+
+                            itemPrice = winningBid - regularShipping;
+                            totalShipping = regularShipping + expeditedShipping;
+                        }
+                    }
+                } catch (err) {}
+
+                document.getElementById('txId').textContent = receipt.transactionId || '—';
+                document.getElementById('itemPrice').textContent = `$${itemPrice.toFixed(2)}`;
+                document.getElementById('shippingCost').textContent = `$${totalShipping.toFixed(2)}`;
+                document.getElementById('totalPaid').textContent = `$${totalPaid.toFixed(2)}`;
+            })
+            .catch(err => {
+                document.getElementById('txId').textContent = 'Error loading receipt';
+            });
+    }
 
     function logout() {
         localStorage.clear();

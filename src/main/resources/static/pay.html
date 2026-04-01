@@ -41,6 +41,10 @@
 </div>
 
 <script>
+    let selectedAuctionId = null;
+    let selectedAmount = null;
+    let selectedItemName = null;
+
     async function loadPaymentList() {
         const user = JSON.parse(localStorage.getItem('user'));
         const container = document.getElementById('paymentList');
@@ -70,19 +74,19 @@
                 const productRes = await fetch(`/api/catalogue/products/${auction.itemId}`);
                 const product = await productRes.json();
 
-                const hasPaid = allPayments.some(p => p.auctionId === auction.id && (p.status === 'SUCCESS' || p.status === 'COMPLETED'));
+                const paymentRecord = allPayments.find(p => p.auctionId === auction.id && (p.status === 'SUCCESS' || p.status === 'COMPLETED'));
 
                 const card = document.createElement('div');
                 card.className = 'bg-white border border-gray-200 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-center gap-6';
                 card.dataset.auctionId = auction.id;
                 card.dataset.baseAmount = auction.highestBid;
 
-                if (hasPaid) {
+                if (paymentRecord) {
                     card.innerHTML = `
                         <div class="flex-1">
                             <h3 class="font-semibold text-green-800 mb-1">Item has been purchased</h3>
                             <p class="text-2xl font-medium text-gray-800">${product.name}</p>
-                            <p class="text-sm text-gray-500">Auction #${auction.id} • Final paid: $${auction.highestBid.toFixed(2)}</p>
+                            <p class="text-sm text-gray-500">Auction #${auction.id} • Total Paid: $${paymentRecord.amount.toFixed(2)}</p>
                         </div>
                     `;
                 } else {
@@ -91,10 +95,10 @@
                             <h3 class="font-semibold text-brand mb-1">You won this auction!</h3>
                             <p class="text-2xl font-medium text-gray-800">${product.name}</p>
                             <p class="text-sm text-gray-500">Auction #${auction.id}</p>
-                            <p class="text-xl font-semibold text-brand mt-2" id="total-${auction.id}">Total: $${auction.highestBid.toFixed(2)}</p>
+                            <p class="text-xl font-semibold text-brand mt-2" id="total-${auction.id}" data-current-amount="${auction.highestBid}">Total: $${auction.highestBid.toFixed(2)}</p>
                         </div>
                         <div class="flex gap-3">
-                            <button onclick="processPayment(${auction.id}, ${auction.highestBid}, '${product.name.replace(/'/g, "\\'")}')"
+                            <button onclick="handlePayClick(${auction.id}, '${product.name.replace(/'/g, "\\'")}')"
                                     class="bg-brand hover:bg-brand-dark text-white font-medium px-8 py-4 rounded-2xl text-lg transition">
                                 Pay Now
                             </button>
@@ -117,11 +121,50 @@
         btn.classList.add('opacity-50', 'cursor-not-allowed');
         btn.textContent = 'Expedited Selected';
 
-        const totalEl = document.getElementById(`total-${auctionId}`);
-        const base = parseFloat(totalEl.dataset.baseAmount || totalEl.textContent.match(/\d+\.\d+/)[0]);
+        const card = btn.closest('div[data-auction-id]');
+        const base = parseFloat(card.dataset.baseAmount);
         const newTotal = base + 50;
+
+        const totalEl = document.getElementById(`total-${auctionId}`);
         totalEl.textContent = `Total: $${newTotal.toFixed(2)}`;
         totalEl.dataset.currentAmount = newTotal;
+    }
+
+    function handlePayClick(auctionId, productName) {
+        const totalEl = document.getElementById(`total-${auctionId}`);
+        const currentAmount = parseFloat(totalEl.dataset.currentAmount);
+        openPaymentModal(auctionId, currentAmount, productName);
+    }
+
+    function openPaymentModal(id, amount, name) {
+        selectedAuctionId = id;
+        selectedAmount = amount;
+        selectedItemName = name;
+        document.getElementById('paymentModal').classList.remove('hidden');
+    }
+
+    function closePaymentModal() {
+        document.getElementById('paymentModal').classList.add('hidden');
+    }
+
+    function confirmPayment() {
+        const card = document.getElementById('cardNumber').value;
+        const expiry = document.getElementById('expiry').value;
+        const cvv = document.getElementById('cvv').value;
+
+        if (!card || !expiry || !cvv) {
+            alert("Please fill all fields");
+            return;
+        }
+
+        if (card.length !== 16) {
+            alert("Invalid card number");
+            return;
+        }
+
+        closePaymentModal();
+
+        processPayment(selectedAuctionId, selectedAmount, selectedItemName);
     }
 
     async function processPayment(auctionId, amount, itemName) {
@@ -159,5 +202,21 @@
 </script>
 
 <script src="chat-widget.js"></script>
+
+<div id="paymentModal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50">
+    <div class="bg-white rounded-2xl p-6 w-96 shadow-xl">
+        <h3 class="text-xl font-semibold mb-4">💳 Enter Card Details</h3>
+
+        <input id="cardNumber" class="w-full border p-2 mb-3 rounded" placeholder="Card Number" maxlength="16">
+        <input id="expiry" class="w-full border p-2 mb-3 rounded" placeholder="MM/YY">
+        <input id="cvv" class="w-full border p-2 mb-4 rounded" placeholder="CVV" maxlength="3">
+
+        <div class="flex justify-between">
+            <button onclick="closePaymentModal()" class="px-4 py-2 bg-gray-200 rounded">Cancel</button>
+            <button onclick="confirmPayment()" class="px-4 py-2 bg-green-600 text-white rounded">Confirm</button>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>
