@@ -187,17 +187,22 @@ public class AuctionService {
 
         auction.endAuction();
 
+        String message = String.format("Auction #%d has ended. Winner: User #%d with final bid of $%.2f",
+                auctionId, auction.getHighestBidderId(), auction.getHighestBid());
+
+        notificationListener.addNotification(message);
+
         Map<String, Object> event = new HashMap<>();
         event.put("type", "AuctionEnded");
-        event.put("broadcast", true);
         event.put("auctionId", auctionId);
         event.put("winnerId", auction.getHighestBidderId());
         event.put("finalPrice", auction.getHighestBid());
 
-        rabbitTemplate.convertAndSend(RabbitMQConfig.AUCTION_EVENTS_EXCHANGE, event);
+        rabbitTemplate.convertAndSend("auction.events", "auction.ended", event);
 
         return auctionRepository.save(auction);
     }
+
     public List<Auction> getAllAuctions() {
         return auctionRepository.findAll();
     }

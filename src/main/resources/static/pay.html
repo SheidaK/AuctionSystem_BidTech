@@ -6,9 +6,7 @@
     <title>Payment — BidTech</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        tailwind.config = {
-            theme: { extend: { colors: { brand: { DEFAULT: '#667eea', dark: '#5568d3' } } } }
-        }
+        tailwind.config = { theme: { extend: { colors: { brand: { DEFAULT: '#667eea', dark: '#5568d3' } } } } }
     </script>
     <style>
         .bg-brand-gradient { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
@@ -30,29 +28,24 @@
 </nav>
 
 <div class="max-w-4xl mx-auto my-8 bg-white rounded-2xl shadow-2xl overflow-hidden">
-
     <header class="bg-brand-gradient text-white px-8 py-8">
         <h1 class="text-3xl font-bold mb-1">💳 Payment Service</h1>
-        <p class="text-white/90">Review and confirm payments for your won auctions</p>
+        <p class="text-white/90">Won auctions awaiting your payment</p>
     </header>
 
     <div class="p-8">
-
-        <div id="pendingPayments" class="space-y-6">
-            <p class="text-gray-500 font-medium text-center py-4">Checking your pending payments...</p>
-        </div>
-
+        <div id="paymentList" class="space-y-6"></div>
         <div id="processResult" class="hidden mt-6 px-6 py-4 rounded-2xl text-center text-lg font-medium"></div>
     </div>
 </div>
 
 <script>
-    async function loadWinnerInfo() {
+    async function loadPaymentList() {
         const user = JSON.parse(localStorage.getItem('user'));
-        const container = document.getElementById('pendingPayments');
+        const container = document.getElementById('paymentList');
 
         if (!user || !user.id) {
-            container.innerHTML = `<div class="bg-red-50 text-red-800 p-6 rounded-2xl text-center font-medium">Please log in to view your pending payments.</div>`;
+            container.innerHTML = `<div class="bg-red-50 text-red-800 p-6 rounded-2xl text-center font-medium">Please log in to view payments.</div>`;
             return;
         }
 
@@ -60,85 +53,79 @@
             const res = await fetch('/auction/all');
             const auctions = await res.json();
 
-            const wonAuctions = auctions.filter(a => !a.active && a.highestBidderId === user.id);
+            const wonEnded = auctions.filter(a => !a.active && a.highestBidderId === user.id);
 
-            if (wonAuctions.length === 0) {
-                container.innerHTML = `
-                    <div class="bg-gray-50 border border-gray-200 rounded-2xl p-8 text-center">
-                        <h3 class="font-semibold text-xl text-gray-700">No pending payments</h3>
-                        <p class="text-gray-500 mt-2">You haven't won any unpaid auctions yet.</p>
-                    </div>`;
+            if (wonEnded.length === 0) {
+                container.innerHTML = `<div class="bg-gray-50 border border-gray-200 rounded-2xl p-8 text-center"><h3 class="font-semibold text-xl text-gray-700">No won auctions yet</h3></div>`;
                 return;
             }
 
+            const resPayments = await fetch('/api/payments');
+            const allPayments = await resPayments.json();
+
             container.innerHTML = '';
 
-            for (const auction of wonAuctions) {
+            for (const auction of wonEnded) {
                 const productRes = await fetch(`/api/catalogue/products/${auction.itemId}`);
                 const product = await productRes.json();
 
-                const safeProductName = product.name.replace(/'/g, "\\'");
+                const hasPaid = allPayments.some(p => p.auctionId === auction.id && (p.status === 'SUCCESS' || p.status === 'COMPLETED'));
 
                 const card = document.createElement('div');
-                card.className = 'bg-green-50 border border-green-200 rounded-2xl p-6 flex flex-col md:flex-row justify-between items-center gap-4';
-                card.innerHTML = `
-                    <div class="flex-1 text-center md:text-left">
-                        <h3 class="font-semibold text-green-800 mb-1">🏆 You won this auction!</h3>
-                        <p class="text-2xl font-medium text-gray-800">Item: <strong>${product.name}</strong></p>
-                        <p class="text-sm text-gray-500 mt-1">Auction ID: #${auction.id}</p>
-                    </div>
-                    <div class="text-center md:text-right">
-                        <p class="text-3xl font-bold text-brand mb-3">$${auction.highestBid.toFixed(2)}</p>
+                card.className = 'bg-white border border-gray-200 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-center gap-6';
 
-                        <button onclick="processPayment(${auction.id}, ${auction.highestBid}, '${safeProductName}')"
-                                class="w-full md:w-auto px-8 py-3 bg-green-600 hover:bg-green-700 text-white text-lg font-semibold rounded-xl transition shadow-sm">
-                            💳 Pay Now
+                if (hasPaid) {
+                    card.innerHTML = `
+                        <div class="flex-1">
+                            <h3 class="font-semibold text-green-800 mb-1">Item has been purchased</h3>
+                            <p class="text-2xl font-medium text-gray-800">${product.name}</p>
+                            <p class="text-sm text-gray-500">Auction #${auction.id} • $${auction.highestBid.toFixed(2)}</p>
+                        </div>
+                    `;
+                } else {
+                    card.innerHTML = `
+                        <div class="flex-1">
+                            <h3 class="font-semibold text-brand mb-1">You won this auction!</h3>
+                            <p class="text-2xl font-medium text-gray-800">${product.name}</p>
+                            <p class="text-sm text-gray-500">Auction #${auction.id} • Final bid: $${auction.highestBid.toFixed(2)}</p>
+                        </div>
+                        <button onclick="processPayment(${auction.id}, ${auction.highestBid}, '${product.name.replace(/'/g, "\\'")}')"
+                                class="bg-brand hover:bg-brand-dark text-white font-medium px-8 py-4 rounded-2xl text-lg transition">
+                            Pay Now
                         </button>
-                    </div>
-                `;
+                    `;
+                }
                 container.appendChild(card);
             }
         } catch (e) {
-            console.error(e);
-            container.innerHTML = `<div class="bg-red-50 text-red-800 p-6 rounded-2xl text-center font-medium">Error loading payments: ${e.message}</div>`;
+            container.innerHTML = `<div class="bg-red-50 text-red-800 p-6 rounded-2xl text-center font-medium">Error loading payments.</div>`;
         }
     }
 
     async function processPayment(auctionId, amount, itemName) {
         const user = JSON.parse(localStorage.getItem('user'));
-
-        if (!user || !user.id) {
-            alert("Please log in first.");
-            return;
-        }
+        if (!user || !user.id) return alert("Please log in first.");
 
         try {
             const res = await fetch(`/api/payments/process?auctionId=${auctionId}&userId=${user.id}&amount=${amount}&itemName=${encodeURIComponent(itemName)}`, { method: 'POST' });
             const result = await res.text();
 
-            if (result.startsWith("Please") || result.startsWith("Negative")) {
-                showMsg('processResult', '❌ ' + result, 'error');
-            } else {
-                showMsg('processResult', `✅ Payment successful!`, 'success');
+            if (res.ok) {
+                document.getElementById('processResult').innerHTML = `✅ Payment successful for Auction #${auctionId}!`;
+                document.getElementById('processResult').className = 'bg-green-50 text-green-800 border border-green-200 px-6 py-4 rounded-2xl text-center text-lg font-medium mt-6';
+                document.getElementById('processResult').classList.remove('hidden');
+
+                loadPaymentList();
 
                 setTimeout(() => {
                     window.location.href = '/index.html';
-                }, 1500);
+                }, 1200);
+            } else {
+                alert(result);
             }
         } catch (err) {
-            showMsg('processResult', '❌ ' + err.message, 'error');
+            alert("Payment failed.");
         }
-    }
-
-    function showMsg(id, text, type) {
-        const el = document.getElementById(id);
-        const styles = {
-            success: 'bg-green-50 text-green-800 border border-green-200',
-            error:   'bg-red-50 text-red-800 border border-red-200'
-        };
-        el.className = `px-6 py-4 rounded-2xl text-lg font-medium mt-6 ${styles[type]}`;
-        el.textContent = text;
-        el.classList.remove('hidden');
     }
 
     function logout() {
@@ -146,7 +133,7 @@
         window.location.href = '/login.html';
     }
 
-    window.onload = loadWinnerInfo;
+    window.onload = loadPaymentList;
 </script>
 
 <script src="chat-widget.js"></script>
