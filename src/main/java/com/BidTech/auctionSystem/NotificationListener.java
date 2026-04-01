@@ -16,7 +16,7 @@ public class NotificationListener {
      * Receives messages from RabbitMQ queue and stores them for the UI.
      */
     @RabbitListener(queues = "notification.queue")
-    public void handleEvent(Map<String, Object> event) {
+    /*public void handleEvent(Map<String, Object> event) {
         String type = (String) event.get("type");
         String message = "";
 
@@ -33,6 +33,39 @@ public class NotificationListener {
         }
 
         notifications.add(message);
+        System.out.println("🔔 " + message);
+    }*/
+    @RabbitListener(queues = "notification.queue")
+    public void handleEvent(Map<String, Object> event) {
+
+        String type = (String) event.get("type");
+
+        String message;
+
+        if ("BidPlaced".equals(type)) {
+            message = "💰 New bid on auction " + event.get("auctionId") + ": $" + event.get("amount");
+
+        } else if ("AuctionEnded".equals(type)) {
+
+            Object winner = event.get("winnerId");
+
+            if (winner != null) {
+                message = "🏁 Auction " + event.get("auctionId") + " ended. Winner: User #" + winner;
+            } else {
+                message = "🏁 Auction " + event.get("auctionId") + " ended. No bids placed.";
+            }
+
+        } else if ("PaymentCompleted".equals(type)) {
+            message = "💳 Payment completed for auction " + event.get("auctionId");
+
+        } else if ("BidRejected".equals(type)) {
+            message = "❌ Bid rejected on auction " + event.get("auctionId");
+
+        } else {
+            message = "🔔 " + event.toString();
+        }
+
+        notifications.add(0, message);
         System.out.println("🔔 " + message);
     }
 
@@ -57,4 +90,26 @@ public class NotificationListener {
     public void clearNotifications() {
         notifications.clear();
     }
+
+    /*@RabbitListener(queues = "notification.queue")
+    public void handleAuctionEvents(Map<String, Object> event) {
+
+        String type = (String) event.get("type");
+
+        if ("AuctionEnded".equals(type)) {
+
+            Long auctionId = Long.valueOf(event.get("auctionId").toString());
+            Object winner = event.get("winnerId");
+
+            String msg;
+
+            if (winner != null) {
+                msg = "🏁 Auction " + auctionId + " ended. Winner: User #" + winner;
+            } else {
+                msg = "🏁 Auction " + auctionId + " ended. No bids placed.";
+            }
+
+            addNotification(msg);
+        }
+    }*/
 }
