@@ -54,13 +54,19 @@ public class AuctionService {
      */
     public Auction createAuction(Long itemId, double startingPrice, LocalDateTime endDateTime, String itemName) {
         Auction auction = new Auction(itemId, startingPrice);
+
+        if (endDateTime.isBefore(LocalDateTime.now())) {
+            endDateTime = LocalDateTime.now().plusHours(1);
+        }
+
         auction.setEndTime(endDateTime);
         Auction savedAuction = auctionRepository.save(auction);
 
         Map<String, Object> event = new HashMap<>();
         event.put("type", "AuctionCreated");
+        event.put("auctionId", savedAuction.getId());
         event.put("itemId", itemId);
-        event.put("itemName", itemName); // Added to map
+        event.put("itemName", itemName);
         event.put("startingPrice", startingPrice);
         event.put("endTime", endDateTime.toString());
 
